@@ -1,0 +1,567 @@
+.loginButton {
+  width: 100%;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.loginButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e55a2b, #e8851a);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
+.loginButton:disabled {
+  background: linear-gradient(135deg, #ffb399, #ffc999);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
+}
+
+.loginButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.25);
+}
+
+.signupButton {
+  width: 100%;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.signupButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e55a2b, #e8851a);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
+.signupButton:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+}
+
+.signupButton:disabled {
+  background: linear-gradient(135deg, #ffb399, #ffc999);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
+}
+.logoutButton {
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+.logoutButton:hover {
+  background: linear-gradient(135deg, #e55a2b, #e8851a);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
+.logoutButton:active {
+  transform: translateY(0);
+}
+
+.logoutButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+.deleteButton {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.deleteButton:hover {
+  background-color: #c82333;
+}
+
+
+.updateButton {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.updateButton:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.updateButton:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.AddToCartbutton {
+  background: #ff6b35;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  text-align: center;
+}
+
+.AddToCartbutton:hover:not(.disabled):not(.loading) {
+  border-color: #af4a25;
+  transform: translateY(-1px);
+}
+
+.AddToCartbutton:active:not(.disabled):not(.loading) {
+  transform: translateY(0);
+}
+
+.AddToCartbuttondisabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.AddToCartbuttonloading {
+  background: #707070;
+  cursor: wait;
+  opacity: 0.8;
+}
+
+.AddToCartbuttonadded {
+  background: #28a745;
+  cursor: default;
+}
+
+.AddToCartbutton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(223, 100, 30, 0.25);
+}
+
+@media (max-width: 480px){
+  .AddToCartbutton {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+    min-width: 100px;
+  }
+}
+
+.AdminDashboardButton {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #ff8c00, #ff7700);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.AdminDashboardButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff7700, #ff6600);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.3);
+}
+
+.AdminDashboardButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.AdminDashboardButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .AdminDashboardButton {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+  }
+}
+
+.createCategoryButton {
+  background-color: #ff6b35;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.createCategoryButton:hover:not(:disabled) {
+  background-color: #e55a2b;
+  transform: translateY(-1px);
+}
+
+.createCategoryButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.createCategoryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+/* Focus styles for accessibility */
+.createCategoryButton:focus {
+  outline: 2px solid #ff6b35;
+  outline-offset: 2px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .createCategoryButton {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+}
+
+.removeButton {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.removeButton:hover:not(:disabled) {
+  background-color: #c82333;
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.removeButton:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.removeButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.removeButton.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Focus styles for accessibility */
+.removeButton:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.CreateMedicineButton {
+  background: #ff6b35;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.CreateMedicineButton:hover {
+  background: #e55a2b;
+}
+
+.CreateMedicineButton:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 768px) {
+  .CreateMedicineButton {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+  }
+}
+
+.SubmitButton {
+  background: #ff6b35;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 120px;
+}
+
+.SubmitButton:hover:not(:disabled) {
+  background: #e55a2b;
+}
+
+.SubmitButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.SubmitButton.loading {
+  background: #ccc;
+}
+
+.CheckoutButton {
+  background-color: #ff6b35;
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.CheckoutButton:hover:not(:disabled) {
+  background-color: #e55a2b;
+}
+
+.CheckoutButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .CheckoutButton {
+    padding: 14px 24px;
+    font-size: 16px;
+  }
+}
+
+.AddFeedbackButton {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.AddFeedbackButton:hover {
+  background-color: #2563eb;
+}
+
+.AddFeedbackSuButton {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.AddFeedbackSuButton:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.AddFeedbackSuButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.AddFeedbackSubmitButton {
+  background-color:#e55a2b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.AddFeedbackSubmitButton:hover:not(:disabled) {
+  background-color:#ce5127;
+}
+
+
+.CancelOrderbutton {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.CancelOrderbutton:hover {
+  background-color: #b91c1c;
+}
+
+.CancelOrderconfirmDialog {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: white;
+}
+
+.CancelOrderconfirmText {
+  margin: 0;
+  font-weight: 500;
+}
+
+.CancelOrderconfirmButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.CancelOrdercancelButton {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.CancelOrdercancelButton:hover {
+  background-color: #b91c1c;
+}
+
+.CancelOrdercancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.CancelOrderkeepButton {
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.CancelOrderkeepButton:hover {
+  background-color: #4b5563;
+}
+
+.DeleteFeedbackButton {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.DeleteFeedbackButton:hover {
+  background-color: #b91c1c;
+}
+
+.UpdateFeedbackButton {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.UpdateFeedbackButton:hover {
+  background-color: #d97706;
+}

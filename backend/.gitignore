@@ -1,0 +1,51 @@
+*.log
+.DS_Store
+Thumbs.db
+
+# Environment & secrets (Crucial)
+.env
+.env.*
+/auth.json
+auth.json
+
+# Dependencies & Build Folders
+/vendor/
+/node_modules/
+/.next/
+/out/
+
+# Laravel & Public Builds
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/storage/api-docs/
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+bootstrap/compiled.php
+app/storage/
+public_html/storage
+public_html/hot
+
+# Cache & IDE Configs
+/.phpunit.cache
+.phpunit.result.cache
+.phpactor.json
+/bootstrap/cache/*.php
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+/.vagrant
+
+# Homestead
+Homestead.json
+Homestead.yaml
+
+# Package Manager Logs (Note: composer.lock is kept so your team shares exact PHP dependencies)
+npm-debug.log
+yarn-error.log

@@ -1,0 +1,491 @@
+.container {
+  min-height: 100vh;
+}
+
+/* Loading Styles */
+.loadingContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 128px;
+  height: 128px;
+  border: 2px solid transparent;
+  border-bottom: 2px solid #d97706;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hero Section */
+.heroSection {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.heroBackground {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.heroImage {
+  object-fit: cover;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.heroContent {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  color: white;
+  max-width: 896px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.heroTitle {
+  font-size: 6rem;
+  font-weight: bold;
+  margin-bottom: 24px;
+  text-wrap: balance;
+}
+
+.heroSubtitle {
+  font-size: 1.5rem;
+  margin-bottom: 32px;
+  text-wrap: balance;
+  opacity: 0.9;
+}
+
+.heroButton {
+  background: #d97706;
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  font-size: 1.125rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.heroButton:hover {
+  background: #b45309;
+}
+
+@media (min-width: 768px) {
+  .heroTitle {
+    font-size: 8rem;
+  }
+
+  .heroSubtitle {
+    font-size: 2rem;
+  }
+}
+
+/* Story Section */
+.storySection {
+  padding: 80px 16px;
+  background: #fefefe;
+}
+
+.storyContainer {
+  max-width: 1152px;
+  margin: 0 auto;
+}
+
+.storyGrid {
+  display: grid;
+  gap: 48px;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .storyGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.storyTitle {
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 24px;
+  color: #1f2937;
+}
+
+.storyText {
+  font-size: 1.125rem;
+  color: rgba(31, 41, 55, 0.8);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.storyFeatures {
+  display: flex;
+  gap: 32px;
+}
+
+.feature {
+  text-align: center;
+}
+
+.featureIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #d97706;
+  border-radius: 50%;
+  margin: 0 auto 8px;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+.featureText {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.storyImageContainer {
+  position: relative;
+}
+
+.storyImage {
+  border-radius: 8px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+@media (min-width: 768px) {
+  .storyTitle {
+    font-size: 4rem;
+  }
+}
+
+/* Categories Section */
+.categoriesSection {
+  padding: 80px 16px;
+}
+
+.categoriesContainer {
+  max-width: 1152px;
+  margin: 0 auto;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.sectionTitle {
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 16px;
+  color: #1f2937;
+}
+
+.sectionSubtitle {
+  font-size: 1.125rem;
+  color: #6b7280;
+  max-width: 512px;
+  margin: 0 auto;
+}
+
+.categoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+@media (min-width: 768px) {
+  .categoriesGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .sectionTitle {
+    font-size: 4rem;
+  }
+}
+
+.categoryCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.categoryCard:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.categoryContent {
+  padding: 24px;
+  text-align: center;
+}
+
+.categoryIcon {
+  width: 64px;
+  height: 64px;
+  background: rgba(217, 119, 6, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  transition: background-color 0.3s;
+}
+
+.categoryCard:hover .categoryIcon {
+  background: rgba(217, 119, 6, 0.2);
+}
+
+.categoryLetter {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #d97706;
+}
+
+.categoryName {
+  font-weight: 600;
+  color: #1f2937;
+  text-transform: capitalize;
+}
+
+/* Medicines Section */
+.medicinesSection {
+  padding: 80px 16px;
+  background: #f9fafb;
+}
+
+.medicinesContainer {
+  max-width: 1152px;
+  margin: 0 auto;
+}
+
+.medicinesGrid {
+  display: grid;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+@media (min-width: 768px) {
+  .medicinesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .medicinesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.medicineCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.medicineCard:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.medicineImageContainer {
+  position: relative;
+  height: 192px;
+  overflow: hidden;
+}
+
+.medicineImage {
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.medicineCard:hover .medicineImage {
+  transform: scale(1.05);
+}
+
+.medicinePrice {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #d97706;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.medicineContent {
+  padding: 24px;
+}
+
+.medicineName {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
+
+.medicineDescription {
+  color: rgba(31, 41, 55, 0.7);
+  margin-bottom: 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.medicineStats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.medicineStat {
+  font-size: 0.875rem;
+  color: rgba(31, 41, 55, 0.6);
+}
+
+/* Buttons */
+.sectionButton {
+  text-align: center;
+}
+
+.showMoreButton {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto;
+  transition: all 0.2s;
+}
+
+.showMoreButton:hover {
+  background: #f9fafb;
+}
+
+.buttonIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* CTA Section */
+.ctaSection {
+  padding: 80px 16px;
+  background: #d97706;
+  color: white;
+}
+
+.ctaContainer {
+  max-width: 896px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.ctaTitle {
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 24px;
+}
+
+.ctaSubtitle {
+  font-size: 1.25rem;
+  margin-bottom: 32px;
+  opacity: 0.9;
+}
+
+.ctaButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+}
+
+@media (min-width: 640px) {
+  .ctaButtons {
+    flex-direction: row;
+  }
+
+  .ctaTitle {
+    font-size: 4rem;
+  }
+}
+
+.ctaPrimary {
+  background: white;
+  color: #d97706;
+  border: none;
+  padding: 16px 32px;
+  font-size: 1.125rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ctaPrimary:hover {
+  background: #f3f4f6;
+}
+
+.ctaSecondary {
+  background: transparent;
+  color: white;
+  border: 1px solid white;
+  padding: 16px 32px;
+  font-size: 1.125rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ctaSecondary:hover {
+  background: #a15b0a
+}
+
+.medicineLink {
+  color: white;
+  text-decoration: none;
+}
+
+.medicineLink1 {
+  color: #d97706;
+  text-decoration: none;
+}
+
+.medicineLink2 {
+  color: white;
+  text-decoration: none;
+}
