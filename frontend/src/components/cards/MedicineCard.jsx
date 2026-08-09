@@ -13,7 +13,6 @@ export default function MedicineCard({ medicine }) {
     : "/placeholder.svg?height=200&width=200&query=medicine";
 
   const handleCardClick = (e) => {
-    // Don't navigate if clicking on the button
     if (e.target.closest("button")) {
       return
     }

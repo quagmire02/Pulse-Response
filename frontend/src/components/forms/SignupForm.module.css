@@ -30,7 +30,7 @@
 .label {
   font-size: 14px;
   font-weight: 600;
-  color: #d2691e;
+  color: #0b79d4;
   margin-bottom: 4px;
 }
 
@@ -45,8 +45,8 @@
 
 .input:focus {
   outline: none;
-  border-color: #ff6b35;
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+  border-color: #0b79d4;
+  box-shadow: 0 0 0 3px rgba(11, 121, 212, 0.1);
 }
 
 .inputError {

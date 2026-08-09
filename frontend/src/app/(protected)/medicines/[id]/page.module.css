@@ -37,7 +37,7 @@
   border-radius: 6px;
 }
 .backButton {
-  background: #ff6b35;
+  background: #0b79d4;
   margin-top: 1rem;
   display: flex;
   justify-content: flex-start;
@@ -51,7 +51,7 @@
 }
 
 .backButton:hover {
-  background: #e55a2b;
+  background: #0965b4;
 }
 
 @media (max-width: 768px) {

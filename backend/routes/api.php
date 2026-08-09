@@ -6,10 +6,12 @@ use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\User\PharmacistController;
 use App\Http\Controllers\Medicine\CategoryController;
 use App\Http\Controllers\Medicine\MedicineController;
+use App\Http\Controllers\Shop\CartItemController;
+use App\Http\Controllers\Shop\OrderController;
+use App\Http\Controllers\Shop\PaymentController;
+use App\Http\Controllers\Shop\DeliveryController;
 use App\Http\Controllers\Misc\NotificationController;
 use App\Http\Controllers\Misc\ConsultationController;
-use App\Http\Controllers\Equipment\EquipmentController;
-use App\Http\Controllers\Vendor\VendorController;
 
 
 Route::post('/login', [AuthController::class, 'login'])
@@ -23,18 +25,6 @@ Route::get('/medicines', [MedicineController::class, 'index'])
 
 Route::get('/medicines/{id}', [MedicineController::class, 'show'])
     ->name('api.getMedicine');
-
-Route::get('/equipments', [EquipmentController::class, 'index'])
-    ->name('api.getEquipments');
-
-Route::get('/equipments/{id}', [EquipmentController::class, 'show'])
-    ->name('api.getEquipment');
-
-Route::get('/vendors', [VendorController::class, 'index'])
-    ->name('api.getVendors');
-
-Route::get('/vendors/{id}', [VendorController::class, 'show'])
-    ->name('api.getVendor');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])
@@ -84,25 +74,54 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/medicines/{id}', [MedicineController::class, 'destroy'])
         ->name('api.deleteMedicine');
-
-    Route::post('/equipments', [EquipmentController::class, 'create'])
-        ->name('api.createEquipment');
-
-    Route::patch('/equipments/{id}', [EquipmentController::class, 'update'])
-        ->name('api.updateEquipment');
-
-    Route::delete('/equipments/{id}', [EquipmentController::class, 'destroy'])
-        ->name('api.deleteEquipment');
-
-    Route::post('/vendors', [VendorController::class, 'create'])
-        ->name('api.createVendor');
-
-    Route::patch('/vendors/{id}', [VendorController::class, 'update'])
-        ->name('api.updateVendor');
-
-    Route::delete('/vendors/{id}', [VendorController::class, 'destroy'])
-        ->name('api.deleteVendor');
         
+    Route::get('/cart-items/{user_id}', [CartItemController::class, 'show'])
+        ->name('api.getCartItems');
+
+    Route::put('/cart-items/{cart_id}', [CartItemController::class, 'update'])
+        ->name('api.updateCart');
+
+    Route::delete('/cart-items/{cart_id}', [CartItemController::class, 'destroy'])
+        ->name('api.deleteFromCart');
+
+    Route::get('/orders', [OrderController::class, 'index'])
+        ->name('api.getOrders');
+
+    Route::get('/orders/new', [OrderController::class, 'indexNewOrders'])
+        ->name('api.getNewOrders');
+
+    Route::get('/orders/{order}', [OrderController::class, 'show'])
+        ->name('api.getOrder');
+
+    Route::post('/orders', [OrderController::class, 'create'])
+        ->name('api.createOrder');
+
+    Route::patch('/orders/{order}', [OrderController::class, 'update'])
+        ->name('api.updateOrder');
+
+    Route::delete('/orders/{order}', [OrderController::class, 'destroy'])
+        ->name('api.deleteOrder');
+
+    Route::get('/payments', [PaymentController::class, 'index'])
+        ->name('api.getPayments');
+
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])
+        ->name('api.getPayment');
+
+    Route::post('/payments', [PaymentController::class, 'create'])
+        ->name('api.createPayment');
+
+    Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])
+        ->name('api.deletePayment');
+
+    Route::get('/deliveries', [DeliveryController::class, 'index'])
+        ->name('api.getDeliveries');
+        
+    Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show'])
+        ->name('api.getDelivery');
+
+    Route::delete('/deliveries/{delivery}', [DeliveryController::class, 'destroy'])
+        ->name('api.deleteDelivery');
 
     Route::get('/notifications/available', [NotificationController::class, 'isNotiAvailable'])
         ->name('api.isNotiAvailable');

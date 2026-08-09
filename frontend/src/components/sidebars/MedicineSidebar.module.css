@@ -79,8 +79,8 @@
 
 .select:focus {
   outline: none;
-  border-color: #ff6b35;
-  box-shadow: 0 0 0 2px rgba(223, 100, 30, 0.25);
+  border-color: #0b79d4;
+  box-shadow: 0 0 0 2px rgba(11, 121, 212, 0.25);
 }
 
 .clearButton {

@@ -3,7 +3,7 @@ import { useFormStatus } from "react-dom"
 import { useState } from "react"
 import { logoutAction } from "@/actions/authActions"
 import styles from "./buttons.module.css"
-import { getCartItemsAction, updateCartItemsAction } from "@/actions/cartActions"
+// import { getCartItemsAction, updateCartItemsAction } from "@/actions/cartActions"
 import { getUserIdAction } from "@/actions/authActions"
 
 export function LoginButton() {

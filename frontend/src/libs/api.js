@@ -4,11 +4,11 @@ const API_URL = process.env.API_BASE_URL;
 const apiClient = new ApiClient(API_URL);
 
 export const login = async (data) => {
-  return apiClient.post("/login/", data);
+  return apiClient.post("/login", data);
 };
 
 export const logout = async () => {
-  return await apiClient.post("/logout/");
+  return await apiClient.post("/logout");
 };
 
 export const getUsers = async () => {
@@ -24,7 +24,7 @@ export const createUser = async (data) => {
 };
 
 export const updateUser = async (id, data) => {
-  return apiClient.put(`/users/${id}/`, data);
+  return apiClient.patch(`/users/${id}/`, data);
 };
 
 export const deleteUser = async (id) => {
@@ -122,8 +122,9 @@ export const deleteOrder = async (id) => {
   return apiClient.delete(`/orders/${id}/`);
 };
 
-export const getPayments = async () => {
-  return apiClient.get(`/payments/`);
+export const getPayments = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/payments/?${params.toString()}`);
 };
 
 export const getPayment = async (id) => {

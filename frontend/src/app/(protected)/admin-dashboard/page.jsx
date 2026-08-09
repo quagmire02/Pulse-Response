@@ -61,7 +61,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className={styles.grid}>
-        {dashboardOptions.map((option) => (
+        {/* {dashboardOptions.map((option) => (
           <AdminDashboardCard
             key={option.id}
             title={option.title}
@@ -69,7 +69,7 @@ export default function AdminDashboard() {
             icon={option.icon}
             onClick={() => handleCardClick(option.route)}
           />
-        ))}
+        ))} */}
       </div>
     </div>
   )

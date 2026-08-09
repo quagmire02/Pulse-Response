@@ -25,13 +25,13 @@
 .title {
   font-size: 32px;
   font-weight: 700;
-  color: #d2691e;
+  color: #0b79d4;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 16px;
-  color: #8b4513;
+  color: #0b79d4;
   margin: 0;
 }
 
@@ -55,11 +55,11 @@
 
 .footerText {
   font-size: 14px;
-  color: #8b4513;
+  color: #0b79d4;
   margin: 0;
 }
 .link {
-  color: #ff6b35;
+  color: #0b79d4;
   text-decoration: none;
   font-weight: 600;
 }

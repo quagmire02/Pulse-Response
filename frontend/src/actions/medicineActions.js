@@ -79,7 +79,7 @@ export const getMedicinesAction = async (queryParams = {}) => {
 export const getMedicineAction = async (id) => {
   try {
     const response = await getMedicine(id);
-
+    console.log(response);
     if (response.error) {
       return { error: response.error };
     }
@@ -114,8 +114,10 @@ export const updateMedicineAction = async (id, formData) => {
     if (image_url.size > 0) {
       response = await updateMedicine(id, formData, true);
     } else {
+      const category_ids = formData.getAll("category_ids[]");
+
       data = {
-        ...(formData.getAll("category_ids[]").length > 0 && { category_ids: formData.getAll("category_ids[]") }),
+        ...(category_ids.length > 0 && { category_ids }),
         ...(formData.get("name") && { name: formData.get("name") }),
         ...(formData.get("description") && { description: formData.get("description") }),
         ...(formData.get("price") && { price: formData.get("price") }),

@@ -44,14 +44,14 @@
 }
 
 .pageButton.active {
-  background-color: #ff6b35;
-  border-color: #ff6b35;
+  background-color: #0b79d4;
+  border-color: #0b79d4;
   color: white;
 }
 
 .pageButton.active:hover {
-  background-color: #e55a2b;
-  border-color: #e55a2b;
+  background-color: #0b79d4;
+  border-color: #0b79d4;
   color: white;
 }
 

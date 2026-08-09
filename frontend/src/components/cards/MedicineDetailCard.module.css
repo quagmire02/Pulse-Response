@@ -54,7 +54,7 @@
 .price {
   font-size: 20px;
   font-weight: 700;
-  color: #ff6b35;
+  color: #0b79d4;
   background: #fff5f2;
   padding: 8px 12px;
   border-radius: 6px;
@@ -70,6 +70,16 @@
 .details {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.detailsBig {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 16px;
   margin-bottom: 24px;
   padding: 16px;
@@ -107,11 +117,17 @@
   justify-content: center;
 }
 
+.category {
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 0.25rem
+}
+
 .updateButton {
-  background: #ff6b35;
+  background: #0b79d4;
   color: white;
   border: none;
-  padding: 12px 24px;
+  padding: 12px 24px; 
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
@@ -121,7 +137,7 @@
 }
 
 .updateButton:hover {
-  background: #e55a2b;
+  background: #0a68b4;
 }
 
 .deleteButton {

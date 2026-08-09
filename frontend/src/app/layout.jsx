@@ -1,8 +1,8 @@
 import "@/styles/globals.css";
 
 export const metadata = {
-  title: "PharmaFlow",
-  description: "Simplifying Pharmaceutical Supply Chain Management",
+  title: "PulseResponse",
+  description: "Pharmaceutical Supply Chain and Emergency Management",
 };
 
 export default function RootLayout({ children }) {

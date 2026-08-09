@@ -18,16 +18,15 @@ export default function MedicinesPage() {
   const [pagination, setPagination] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
+  const [nameTerm, setSearchTerm] = useState(searchParams.get("name") || "")
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const currentFilters = {
-    search: searchParams.get("search") || "",
+    name: searchParams.get("name") || "",
     category: searchParams.get("category") || "",
     is_available: searchParams.get("is_available") || "",
     sort_by_price: searchParams.get("sort_by_price") || "",
     page: searchParams.get("page") || "1",
-    per_page: searchParams.get("per_page") || "10",
   }
 
   useEffect(() => {
@@ -89,7 +88,7 @@ export default function MedicinesPage() {
     })
 
     if (
-      newFilters.search !== undefined ||
+      newFilters.name !== undefined ||
       newFilters.category !== undefined ||
       newFilters.is_available !== undefined ||
       newFilters.sort_by_price !== undefined
@@ -102,7 +101,7 @@ export default function MedicinesPage() {
 
   const handleSearch = (e) => {
     e.preventDefault()
-    updateFilters({ search: searchTerm })
+    updateFilters({ name: nameTerm })
   }
 
   const handleSearchChange = (e) => {
@@ -129,7 +128,7 @@ export default function MedicinesPage() {
         />
 
         <main className={styles.main}>
-          <h1 className={styles.title}>Our Medicine Menu</h1>
+          <h1 className={styles.title}>Medicines</h1>
           <div className={styles.mainHeader}>
             <button className={styles.sidebarToggle} onClick={toggleSidebar} aria-label="Toggle sidebar">
               ☰
@@ -139,7 +138,7 @@ export default function MedicinesPage() {
               <input
                 type="text"
                 placeholder="Search medicines..."
-                value={searchTerm}
+                value={nameTerm}
                 onChange={handleSearchChange}
                 className={styles.searchInput}
               />

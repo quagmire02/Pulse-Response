@@ -1,7 +1,7 @@
 .loginButton {
   width: 100%;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  background: linear-gradient(135deg, #0b79d4, #12ffa0);
   color: white;
   border: none;
   border-radius: 8px;
@@ -13,13 +13,13 @@
 }
 
 .loginButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, #e55a2b, #e8851a);
+  background: linear-gradient(135deg, #0965b4, #12ffa0);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
 }
 
 .loginButton:disabled {
-  background: linear-gradient(135deg, #ffb399, #ffc999);
+  background: linear-gradient(135deg, #0b79d4, #12ffa0);
   cursor: not-allowed;
   transform: none;
   box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
@@ -33,7 +33,7 @@
 .signupButton {
   width: 100%;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  background: linear-gradient(135deg, #0b79d4, #12ffa0);
   color: white;
   border: none;
   border-radius: 8px;
@@ -45,7 +45,7 @@
 }
 
 .signupButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, #e55a2b, #e8851a);
+  background: linear-gradient(135deg, #0965b4, #12ffa0);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
 }
@@ -56,13 +56,13 @@
 }
 
 .signupButton:disabled {
-  background: linear-gradient(135deg, #ffb399, #ffc999);
+  background: linear-gradient(135deg, #f0fffb, #0b79d4);
   cursor: not-allowed;
   transform: none;
   box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
 }
 .logoutButton {
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  background: linear-gradient(135deg, #0b79d4, #12ffa0);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -76,7 +76,7 @@
 }
 
 .logoutButton:hover {
-  background: linear-gradient(135deg, #e55a2b, #e8851a);
+  background: linear-gradient(135deg, #0965b4, #12ffa0);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
 }
@@ -131,7 +131,7 @@
 }
 
 .AddToCartbutton {
-  background: #ff6b35;
+  background: #0b79d4;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -145,7 +145,7 @@
 }
 
 .AddToCartbutton:hover:not(.disabled):not(.loading) {
-  border-color: #af4a25;
+  border-color: #0b79d4;
   transform: translateY(-1px);
 }
 
@@ -186,7 +186,7 @@
 .AdminDashboardButton {
   width: 100%;
   padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, #ff8c00, #ff7700);
+  background: linear-gradient(135deg, #0b79d4, #12ffa0);
   color: white;
   border: none;
   border-radius: 8px;
@@ -199,7 +199,7 @@
 }
 
 .AdminDashboardButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ff7700, #ff6600);
+  background: linear-gradient(135deg, #f0fffb, #0b79d4);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(255, 140, 0, 0.3);
 }
@@ -223,7 +223,7 @@
 }
 
 .createCategoryButton {
-  background-color: #ff6b35;
+  background-color: #0b79d4;
   color: white;
   border: none;
   border-radius: 8px;
@@ -238,7 +238,7 @@
 }
 
 .createCategoryButton:hover:not(:disabled) {
-  background-color: #e55a2b;
+  background-color: #0965b4;
   transform: translateY(-1px);
 }
 
@@ -258,7 +258,7 @@
 
 /* Focus styles for accessibility */
 .createCategoryButton:focus {
-  outline: 2px solid #ff6b35;
+  outline: 2px solid #0b79d4;
   outline-offset: 2px;
 }
 
@@ -323,7 +323,7 @@
 }
 
 .CreateMedicineButton {
-  background: #ff6b35;
+  background: #0b79d4;
   color: white;
   border: none;
   padding: 12px 20px;
@@ -339,7 +339,7 @@
 }
 
 .CreateMedicineButton:hover {
-  background: #e55a2b;
+  background: #0965b4;
 }
 
 .CreateMedicineButton:active {
@@ -355,7 +355,7 @@
 }
 
 .SubmitButton {
-  background: #ff6b35;
+  background: #0b79d4;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -368,7 +368,7 @@
 }
 
 .SubmitButton:hover:not(:disabled) {
-  background: #e55a2b;
+  background: #0965b4;
 }
 
 .SubmitButton:disabled {
@@ -381,7 +381,7 @@
 }
 
 .CheckoutButton {
-  background-color: #ff6b35;
+  background-color: #0b79d4;
   color: white;
   border: none;
   padding: 16px 32px;
@@ -398,7 +398,7 @@
 }
 
 .CheckoutButton:hover:not(:disabled) {
-  background-color: #e55a2b;
+  background-color: #0965b4;
 }
 
 .CheckoutButton:disabled {
@@ -449,7 +449,7 @@
 }
 
 .AddFeedbackSubmitButton {
-  background-color:#e55a2b;
+  background-color:#0b79d4;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -460,7 +460,7 @@
 }
 
 .AddFeedbackSubmitButton:hover:not(:disabled) {
-  background-color:#ce5127;
+  background-color:#0965b4;
 }
 
 
@@ -473,6 +473,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  margin-right: 2rem;
 }
 
 .CancelOrderbutton:hover {
@@ -551,7 +552,7 @@
 }
 
 .UpdateFeedbackButton {
-  background-color: #f59e0b;
+  background-color: #0b79d4;
   color: white;
   border: none;
   padding: 0.25rem 0.75rem;
@@ -563,5 +564,5 @@
 }
 
 .UpdateFeedbackButton:hover {
-  background-color: #d97706;
+  background-color: #0965b4;
 }

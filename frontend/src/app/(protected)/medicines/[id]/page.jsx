@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { getMedicineAction } from "@/actions/medicineActions"
-
-import { getUserIdAction } from "@/actions/authActions"
 import MedicineDetailCard from "@/components/cards/MedicineDetailCard"
 import styles from "./page.module.css"
 
@@ -14,16 +12,12 @@ export default function MedicineDetailPage() {
   const [medicine, setMedicine] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [currentUserId, setCurrentUserId] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userId = await getUserIdAction()
-        setCurrentUserId(userId)
-
-        // Fetch medicine details
         const medicineResponse = await getMedicineAction(params.id)
+
         if (medicineResponse.error) {
           setError(medicineResponse.error)
         } else {
@@ -76,8 +70,6 @@ export default function MedicineDetailPage() {
 
       <h1 className={styles.title}> Details</h1>
       <MedicineDetailCard medicine={medicine} isAdmin={false} />
-
-    
     </div>
   )
 }

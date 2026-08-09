@@ -56,8 +56,8 @@ export default function AdminMedicineCard({ medicine, onDelete, onClick }) {
 
         <div className={styles.meta}>
           <span className={styles.id}>ID: {medicine.id}</span>
-          <span className={`${styles.availability} ${medicine.is_available ? styles.available : styles.unavailable}`}>
-            {medicine.is_available ? "Available" : "Unavailable"}
+          <span className={`${styles.availability} ${medicine.stock > 0 ? styles.available : styles.unavailable}`}>
+            {medicine.stock > 0 ? "Available" : "Unavailable"}
           </span>
         </div>
       </div>

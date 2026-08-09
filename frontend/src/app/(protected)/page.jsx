@@ -55,8 +55,8 @@ export default function HomePage() {
       <section className={styles.heroSection}>
         <div className={styles.heroBackground}>
           <Image
-            src="/sahil1.jpg"
-            alt="PharmaFlow"
+            src="/1.jpg"
+            alt="PulseResponse"
             fill
             className={styles.heroImage}
             priority
@@ -65,7 +65,7 @@ export default function HomePage() {
         </div>
 
         <div className={styles.heroContent}>
-          <h1 className={styles.heroTitle}>PharmaFlow</h1>
+          <h1 className={styles.heroTitle}>PulseResponse</h1>
           <p className={styles.heroSubtitle}>Your Partner in Health and Wellness</p>
           <button className={styles.heroButton}>
             <a className={styles.medicineLink} href="/medicines">Explore Our Products</a>
@@ -73,14 +73,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pharmaflow Story */}
+      {/* Pulse Response Story */}
       <section className={styles.storySection}>
         <div className={styles.storyContainer}>
           <div className={styles.storyGrid}>
             <div className={styles.storyContent}>
               <h2 className={styles.storyTitle}>Our Story</h2>
               <p className={styles.storyText}>
-                At PharmaFlow Pharmacy, we believe that health is a journey, and we're here to support you every step of the way. Founded with a commitment to providing quality healthcare products and expert advice, we've created a space where your well-being comes first.
+                At Pulse Response, we believe that health is a journey, and we're here to support you every step of the way. Founded with a commitment to providing quality healthcare products and expert advice, we've created a space where your well-being comes first.
               </p>
               <p className={styles.storyText}>
                 Our pharmacists and health specialists are dedicated to offering personalized care, sourcing the best medical supplies to help you lead a healthier life.
@@ -108,8 +108,8 @@ export default function HomePage() {
             </div>
             <div className={styles.storyImageContainer}>
               <Image
-                src="/sahil6.jpg"
-                alt="PharmaFlow Story"
+                src="/6.jpg"
+                alt="Pulse Response Story"
                 width={500}
                 height={600}
                 className={styles.storyImage}

@@ -1,3 +1,6 @@
+/*
+ * Form Components
+ */
 .form {
   display: flex;
   flex-direction: column;
@@ -37,7 +40,7 @@
 .select:focus,
 .textarea:focus {
   outline: none;
-  border-color: #ff6b35;
+  border-color: #0b79d4;
 }
 
 .input:disabled,
@@ -87,6 +90,9 @@
   margin-top: 8px;
 }
 
+/*
+ * Medicine File Upload
+ */
 .Medicineinputgroup {
     margin-bottom: 1rem;
 }
@@ -109,7 +115,7 @@
 }
 
 .Medicinebutton {
-    background-color: #f97316;
+    background-color: #0b79d4;
     color: #ffffff;
     font-weight: 700;
     padding: 0.5rem 1rem;
@@ -119,7 +125,7 @@
 }
 
 .Medicinebutton:hover {
-    background-color: #ea580c;
+    background-color: #0965b4;
 }
 
 .Medicinefilename {
@@ -129,10 +135,43 @@
     white-space: nowrap;
 }
 
+/*
+ * Dynamic Category Fields
+ */
+.dynamicField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.addButton,
+.removeButton {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  transition: background-color 0.2s ease;
+}
+
+.removeButton {
+  background-color: #dc3545;
+}
+
+.addButton:hover {
+  background-color: #218838;
+}
+
+.removeButton:hover {
+  background-color: #c82333;
+}
+
 @media (max-width: 768px) {
   .formRow {
     grid-template-columns: 1fr;
     gap: 20px;
   }
 }
-
