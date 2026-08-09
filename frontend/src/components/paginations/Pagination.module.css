@@ -34,9 +34,9 @@
 }
 
 .pageButton:hover {
-  border-color: #ff6b35;
-  color: #ff6b35;
-  background-color: #fff5f2;
+  border-color: #0b79d4;
+  color: #0b79d4;
+  background-color: #f0f8ff;
 }
 
 .pageButton:active {
@@ -50,8 +50,8 @@
 }
 
 .pageButton.active:hover {
-  background-color: #0b79d4;
-  border-color: #0b79d4;
+  background-color: #0968b4;
+  border-color: #0968b4;
   color: white;
 }
 

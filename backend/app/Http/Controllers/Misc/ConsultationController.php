@@ -58,7 +58,7 @@ class ConsultationController extends Controller
 
             if ($user->isSuperAdmin()) {
                 $consultations = Consultation::paginate(10);
-            } elseif ($user->isAdmin()) {
+            } elseif ($user->isAdmin() || $user->pharmacist) {
                 $consultations = Consultation::whereHas('slot', function ($query) use ($user) {
                     $query->where('pharmacist_id', $user->pharmacist->id);
                 })->paginate(10);
@@ -173,6 +173,7 @@ class ConsultationController extends Controller
 
             if (
                 $user->isSuperAdmin() ||
+                ($user->pharmacist && $pharmacist->user_id === $user->id) ||
                 ($user->isAdmin() && $pharmacist->user_id === $user->id) ||
                 $consultation->user_id === $user->id
             ) {
@@ -215,9 +216,12 @@ class ConsultationController extends Controller
      */
     public function create(RegisterConsultationRequest $request)
     {
-        if (Auth::user()->isAdmin()) {
+        $user = Auth::user();
+        $pharmacistToBook = Pharmacist::find($request->input('pharmacist_id'));
+
+        if ($pharmacistToBook && $pharmacistToBook->user_id === $user->id) {
             return response()->json([
-                'error' => 'Admins cannot register consultations.'
+                'error' => 'You cannot book a consultation with yourself.'
             ], 403);
         }
 
@@ -335,7 +339,9 @@ class ConsultationController extends Controller
             $user = Auth::user();
             $isAuthorized = false;
 
-            if ($user->isSuperAdmin() || ($user->isAdmin() && $consultation->slot->pharmacist->user_id === $user->id)) {
+            if ($user->isSuperAdmin() || 
+                ($user->isAdmin() && $consultation->slot->pharmacist->user_id === $user->id) ||
+                ($user->pharmacist && $consultation->slot->pharmacist->user_id === $user->id)) {
                 $isAuthorized = true;
             }
             elseif ($consultation->user_id === $user->id && $validatedData['status'] === 'rejected') {
@@ -405,6 +411,78 @@ class ConsultationController extends Controller
      * @OA\Response(response=500, description="Server error.")
      * )
      */
+    // POST /api/slots — doctor adds their own available slot
+    public function createSlot(Request $request)
+    {
+        $user = Auth::user();
+        $pharmacist = $user->pharmacist;
+
+        if (!$pharmacist && !$user->isSuperAdmin() && !$user->isAdmin()) {
+            return response()->json(['error' => 'Only doctors can add slots.'], 403);
+        }
+
+        $validated = $request->validate([
+            'date'       => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'start_time' => ['required', 'integer', 'between:9,23'],
+        ]);
+
+        try {
+            if (!$pharmacist) {
+                return response()->json(['error' => 'Pharmacist profile not found.'], 404);
+            }
+
+            $exists = Slot::where('pharmacist_id', $pharmacist->id)
+                ->where('date', $validated['date'])
+                ->where('start_time', $validated['start_time'])
+                ->exists();
+
+            if ($exists) {
+                return response()->json(['error' => 'Slot already exists for this time.'], 409);
+            }
+
+            $slot = Slot::create([
+                'pharmacist_id' => $pharmacist->id,
+                'date'          => $validated['date'],
+                'start_time'    => $validated['start_time'],
+                'end_time'      => $validated['start_time'] + 1,
+                'is_available'  => true,
+            ]);
+
+            return response()->json(new SlotResource($slot), 201);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['error' => 'Failed to create slot.'], 500);
+        }
+    }
+
+    // DELETE /api/slots/{slot} — doctor removes their own available slot
+    public function deleteSlot(string $slot)
+    {
+        try {
+            $slot = Slot::find($slot);
+            if (!$slot) {
+                return response()->json(['error' => 'Slot not found.'], 404);
+            }
+
+            $user = Auth::user();
+            $pharmacist = $user->pharmacist;
+
+            if (!$user->isSuperAdmin() && (!$pharmacist || $pharmacist->id !== $slot->pharmacist_id)) {
+                return response()->json(['error' => 'You are not authorized to delete this slot.'], 403);
+            }
+
+            if (!$slot->is_available) {
+                return response()->json(['error' => 'Cannot delete a booked slot.'], 409);
+            }
+
+            $slot->delete();
+            return response()->json(null, 204);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['error' => 'Failed to delete slot.'], 500);
+        }
+    }
+
     public function destroy(Request $request, string $consultation)
     {
         try {

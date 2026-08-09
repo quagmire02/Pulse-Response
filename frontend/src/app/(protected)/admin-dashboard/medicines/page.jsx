@@ -8,7 +8,7 @@ import { deleteMedicineAction } from "@/actions/medicineActions"
 import MedicineSidebar from "@/components/sidebars/MedicineSidebar"
 import Pagination from "@/components/paginations/Pagination"
 import AdminMedicineCard from "@/components/cards/AdminMedicineCard"
-// import DeleteGenModal from "@/components/modals/DeleteGenModal"
+import DeleteGenModal from "@/components/modals/DeleteGenModal"
 import CreateMedicineModal from "@/components/modals/CreateMedicineModal"
 import {CreateMedicineButton} from "@/components/buttons/buttons"
 import styles from "./page.module.css"
@@ -23,14 +23,14 @@ export default function AdminMedicinesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
+  const [nameTerm, setSearchTerm] = useState(searchParams.get("name") || "")
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [medicineToDelete, setMedicineToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
   const [filters, setFilters] = useState({
-    search: searchParams.get("search") || "",
+    name: searchParams.get("name") || "",
     category: searchParams.get("category") || "",
     is_available: searchParams.get("is_available") || "",
     sort_by_price: searchParams.get("sort_by_price") || "",
@@ -119,7 +119,7 @@ export default function AdminMedicinesPage() {
 
   const handleSearch = (e) => {
     e.preventDefault()
-    updateFilters({ search: searchTerm })
+    updateFilters({ name: nameTerm })
   }
 
   const handleDeleteClick = (medicine) => {
@@ -189,7 +189,7 @@ export default function AdminMedicinesPage() {
             <input
               type="text"
               placeholder="Search medicines..."
-              value={searchTerm}
+              value={nameTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={styles.searchInput}
             />

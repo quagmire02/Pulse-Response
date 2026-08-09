@@ -437,7 +437,7 @@ class UserController extends Controller
                 ], 404);
             }
 
-            if (Auth::user() !== $foundUser && !Auth::user()->isSuperAdmin()) {
+            if (Auth::user()->id !== $foundUser->id && !Auth::user()->isSuperAdmin()) {
                 return response()->json([
                     'errors' => 'You are not authorized to delete this user.'
                 ], 403);

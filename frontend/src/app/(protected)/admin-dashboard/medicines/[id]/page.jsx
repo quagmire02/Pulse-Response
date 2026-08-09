@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { getMedicineAction, deleteMedicineAction } from "@/actions/medicineActions"
-import { getUserIdAction } from "@/actions/authActions"
 import { getCategoriesAction } from "@/actions/categoryActions"
 import MedicineDetailCard from "@/components/cards/MedicineDetailCard"
 import DeleteGenModal from "@/components/modals/DeleteGenModal"
@@ -19,14 +18,11 @@ export default function AdminMedicineDetailPage() {
   const [error, setError] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
-  const [currentUserId, setCurrentUserId] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userId = await getUserIdAction()
-        setCurrentUserId(userId)
         const [medicineResponse, categoriesResponse] = await Promise.all([getMedicineAction(params.id), getCategoriesAction()])
 
         if (medicineResponse.error) {

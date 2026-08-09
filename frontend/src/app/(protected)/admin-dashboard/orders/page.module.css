@@ -11,11 +11,11 @@
 
 .header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 .title {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0 0 0.5rem 0;
@@ -27,16 +27,39 @@
   margin: 0;
 }
 
-.cardGrid {
+.error {
+  background-color: #fee;
+  color: #c33;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #fcc;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.orderGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  max-width: 800px;
-  margin: 0 auto;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.noResults {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.1rem;
+  color: #666;
+  grid-column: 1 / -1;
 }
 
 .backButton {
-  background: #ff6b35;
+  background: #0b79d4;
   margin-top: 1rem;
   display: flex;
   justify-content: flex-start;
@@ -50,9 +73,8 @@
 }
 
 .backButton:hover {
-  background: #e55a2b;
+  background: #0965b4;
 }
-
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
@@ -61,15 +83,16 @@
   }
 
   .title {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
 
   .subtitle {
     font-size: 1rem;
   }
 
-  .cardGrid {
+  .orderGrid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
   }
 }
+

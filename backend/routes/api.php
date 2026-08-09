@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\User\PharmacistController;
+use App\Http\Controllers\User\DoctorReviewController;
 use App\Http\Controllers\Medicine\CategoryController;
 use App\Http\Controllers\Medicine\MedicineController;
 use App\Http\Controllers\Shop\CartItemController;
@@ -137,6 +138,21 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])
         ->name('api.deleteNotification');
+
+    Route::post('/slots', [ConsultationController::class, 'createSlot'])
+        ->name('api.createSlot');
+
+    Route::delete('/slots/{slot}', [ConsultationController::class, 'deleteSlot'])
+        ->name('api.deleteSlot');
+
+    Route::get('/pharmacists/{pharmacist}/reviews', [DoctorReviewController::class, 'index'])
+        ->name('api.getReviews');
+
+    Route::post('/pharmacists/{pharmacist}/reviews', [DoctorReviewController::class, 'create'])
+        ->name('api.createReview');
+
+    Route::delete('/pharmacists/{pharmacist}/reviews', [DoctorReviewController::class, 'destroy'])
+        ->name('api.deleteReview');
 
     Route::get('/consultations', [ConsultationController::class, 'index'])
         ->name('api.getConsultations');

@@ -12,7 +12,7 @@
 }
 
 .backButton {
-  background: #ff6b35;
+  background: #0b79d4;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -23,7 +23,7 @@
 }
 
 .backButton:hover {
-  background: #e55a2b;
+  background: #0965b4;
 }
 
 .title {
