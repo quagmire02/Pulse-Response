@@ -17,20 +17,13 @@ export default function AdminDashboard() {
     },
     {
       id: 2,
-      title: "Most Sold Medicines",
-      description: "View the most popular medicine items",
-      icon: "📈",
-      route: "/admin-dashboard/most-sold-medicines",
-    },
-    {
-      id: 3,
       title: "Manage Categories",
       description: "Create, edit and delete categories",
       icon: "📂",
       route: "/admin-dashboard/categories",
     },
     {
-      id: 4,
+      id: 3,
       title: "Manage Orders",
       description: "View and manage customer orders",
       icon: "📋",
@@ -38,10 +31,10 @@ export default function AdminDashboard() {
     },
     {
       id: 4,
-      title: "Create Staff",
-      description: "Create new staff accounts",
+      title: "Create Pharmacist",
+      description: "Create new pharmacist accounts",
       icon: "👥",
-      route: "/admin-dashboard/staff",
+      route: "/pharmacist",
     },
   ]
 
@@ -61,7 +54,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className={styles.grid}>
-        {/* {dashboardOptions.map((option) => (
+        {dashboardOptions.map((option) => (
           <AdminDashboardCard
             key={option.id}
             title={option.title}
@@ -69,7 +62,7 @@ export default function AdminDashboard() {
             icon={option.icon}
             onClick={() => handleCardClick(option.route)}
           />
-        ))} */}
+        ))}
       </div>
     </div>
   )

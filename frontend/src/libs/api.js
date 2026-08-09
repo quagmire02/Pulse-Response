@@ -178,6 +178,26 @@ export const getSlots = async (pharmacist_id, queryParams = {}) => {
   return apiClient.get(`/slots/${pharmacist_id}/?${params.toString()}`);
 };
 
+export const createSlot = async (data) => {
+  return apiClient.post("/slots/", data);
+};
+
+export const deleteSlot = async (id) => {
+  return apiClient.delete(`/slots/${id}/`);
+};
+
+export const getReviews = async (pharmacistId) => {
+  return apiClient.get(`/pharmacists/${pharmacistId}/reviews/`);
+};
+
+export const createReview = async (pharmacistId, data) => {
+  return apiClient.post(`/pharmacists/${pharmacistId}/reviews/`, data);
+};
+
+export const deleteReview = async (pharmacistId) => {
+  return apiClient.delete(`/pharmacists/${pharmacistId}/reviews/`);
+};
+
 export const getConsultations = async (queryParams = {}) => {
   const params = new URLSearchParams(queryParams);
   return apiClient.get(`/consultations/?${params.toString()}`);

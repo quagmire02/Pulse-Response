@@ -1,11 +1,16 @@
 "use server";
 import {
   getSlots,
+  createSlot,
+  deleteSlot,
   getConsultations,
   getConsultation,
   createConsultation,
   updateConsultation,
-  deleteConsultation
+  deleteConsultation,
+  getReviews,
+  createReview,
+  deleteReview,
 } from "@/libs/api";
 
 export const actionError = async (response) => {
@@ -36,15 +41,17 @@ export const actionError = async (response) => {
   return { error: { error: response.error } };
 };
 
-export const getSlotsAction = async (queryParams = {}) => {
+export const getSlotsAction = async (pharmacist_id, queryParams = {}) => {
   try {
-    const response = await getSlots(queryParams);
+    const response = await getSlots(pharmacist_id, queryParams);
 
     if (response.error) {
       return { error: response.error };
     }
 
-    return { data: response };
+    // SlotResource::collection wraps in { data: [...] }
+    const slots = response.data ?? response;
+    return { data: Array.isArray(slots) ? slots : [] };
   } catch (error) {
     console.error(error);
     return { error: error.message || "Failed to fetch slots." };
@@ -90,15 +97,16 @@ export const getConsultationAction = async (id) => {
 };
 
 export const createConsultationAction = async (formData) => {
-  const pharmacist_id = formData["pharmacist"];
+  const pharmacist_id = formData["pharmacist_id"];
   const date = formData["date"];
   const start_time = formData["start_time"];
+  const start_period = formData["start_period"];
 
   const data = {
     pharmacist_id,
-    provider_id,
     date,
     start_time,
+    start_period,
   };
 
   try {
@@ -148,5 +156,63 @@ export const deleteConsultationAction = async (id) => {
   } catch (error) {
     console.error(error);
     return { error: error.message || "Failed to delete consultation." };
+  }
+};
+
+export const createSlotAction = async (formData) => {
+  const data = {
+    date: formData["date"],
+    start_time: parseInt(formData["start_time"]),
+  };
+  try {
+    const response = await createSlot(data);
+    if (response.error) return { error: response.error };
+    return { success: "Slot created.", data: response };
+  } catch (error) {
+    return { error: error.message || "Failed to create slot." };
+  }
+};
+
+export const deleteSlotAction = async (slotId) => {
+  try {
+    const response = await deleteSlot(slotId);
+    if (response.error) return { error: response.error };
+    return { success: "Slot deleted." };
+  } catch (error) {
+    return { error: error.message || "Failed to delete slot." };
+  }
+};
+
+export const getReviewsAction = async (pharmacistId) => {
+  try {
+    const response = await getReviews(pharmacistId);
+    if (response.error) return { error: response.error };
+    return { data: response.data };
+  } catch (error) {
+    return { error: error.message || "Failed to fetch reviews." };
+  }
+};
+
+export const createReviewAction = async (pharmacistId, formData) => {
+  const data = {
+    rating: parseInt(formData["rating"]),
+    comment: formData["comment"] || null,
+  };
+  try {
+    const response = await createReview(pharmacistId, data);
+    if (response.error) return { error: response.error };
+    return { success: response.success };
+  } catch (error) {
+    return { error: error.message || "Failed to submit review." };
+  }
+};
+
+export const deleteReviewAction = async (pharmacistId) => {
+  try {
+    const response = await deleteReview(pharmacistId);
+    if (response.error) return { error: response.error };
+    return { success: "Review deleted." };
+  } catch (error) {
+    return { error: error.message || "Failed to delete review." };
   }
 };

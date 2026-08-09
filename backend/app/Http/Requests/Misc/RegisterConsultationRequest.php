@@ -63,14 +63,14 @@ class RegisterConsultationRequest extends BaseRequest
         return [
             'pharmacist_id' => ['required', 'exists:pharmacists,id'],
             'date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
-            'start_time' => ['required', 'integer', 'between:9,17'],
+            'start_time' => ['required', 'integer', 'between:9,23'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'start_time.between' => 'The start time must be between 9 AM and 5 PM.',
+            'start_time.between' => 'The start time must be between 9 AM and 12 AM.',
         ];
     }
 }
