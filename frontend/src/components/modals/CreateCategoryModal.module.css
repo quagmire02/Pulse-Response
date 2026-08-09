@@ -83,7 +83,7 @@
 
 .input:focus {
   outline: none;
-  border-color: #ff6b35;
+  border-color: #0b79d4;
 }
 
 .input:disabled {
@@ -131,7 +131,7 @@
 
 .createButton {
   padding: 0.75rem 1.5rem;
-  background-color: #ff6b35;
+  background-color: #0b79d4;
   color: white;
   border: none;
   border-radius: 8px;
@@ -145,7 +145,7 @@
 }
 
 .createButton:hover:not(:disabled) {
-  background-color: #e55a2b;
+  background-color: #0965b4;
 }
 
 .createButton:disabled {

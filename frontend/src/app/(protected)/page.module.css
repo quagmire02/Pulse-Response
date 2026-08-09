@@ -14,7 +14,7 @@
   width: 128px;
   height: 128px;
   border: 2px solid transparent;
-  border-bottom: 2px solid #d97706;
+  border-bottom: 2px solid #0965b4;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -76,7 +76,7 @@
 }
 
 .heroButton {
-  background: #d97706;
+  background: #0b79d4;
   color: white;
   border: none;
   padding: 16px 32px;
@@ -87,7 +87,7 @@
 }
 
 .heroButton:hover {
-  background: #b45309;
+  background: #0965b4;
 }
 
 @media (min-width: 768px) {
@@ -152,7 +152,7 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: #d97706;
+  background: #0b79d4;
   border-radius: 50%;
   margin: 0 auto 8px;
 }
@@ -266,7 +266,7 @@
 .categoryLetter {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #d97706;
+  color: #0b79d4;
 }
 
 .categoryName {
@@ -335,7 +335,7 @@
   position: absolute;
   top: 16px;
   right: 16px;
-  background: #d97706;
+  background: #0b79d4;
   color: white;
   padding: 4px 12px;
   border-radius: 9999px;
@@ -406,7 +406,7 @@
 /* CTA Section */
 .ctaSection {
   padding: 80px 16px;
-  background: #d97706;
+  background: #0b79d4;
   color: white;
 }
 
@@ -447,7 +447,7 @@
 
 .ctaPrimary {
   background: white;
-  color: #d97706;
+  color: #0b79d4;
   border: none;
   padding: 16px 32px;
   font-size: 1.125rem;
@@ -472,7 +472,7 @@
 }
 
 .ctaSecondary:hover {
-  background: #a15b0a
+  background: #0965b4;
 }
 
 .medicineLink {
@@ -481,7 +481,7 @@
 }
 
 .medicineLink1 {
-  color: #d97706;
+  color: #0b79d4;
   text-decoration: none;
 }
 

@@ -141,13 +141,13 @@ export const createUserAction = async (formData) => {
 };
 
 export const updateUserAction = async (id, formData) => {
-  const email = formData["email"];
-  const username = formData["username"];
-  const first_name = formData["first_name"];
-  const last_name = formData["last_name"];
-  const address = formData["address"];
-  const password = formData["password"];
-  const password_confirmation = formData["password_confirmation"];
+  const email = formData.get("email");
+  const username = formData.get("username");
+  const first_name = formData.get("first_name");
+  const last_name = formData.get("last_name");
+  const address = formData.get("address");
+  const password = formData.get("password");
+  const password_confirmation = formData.get("password_confirmation");
 
   const data = {
     email,
@@ -155,8 +155,8 @@ export const updateUserAction = async (id, formData) => {
     ...(first_name && { first_name }),
     ...(last_name && { last_name }),
     ...(address && { address }),
-    password,
-    password_confirmation,
+    ...(password && { password }),
+    ...(password_confirmation && { password_confirmation }),
   };
 
   try {

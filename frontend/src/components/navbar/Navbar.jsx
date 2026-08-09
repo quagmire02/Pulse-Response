@@ -48,7 +48,7 @@ export default function Navbar() {
       <nav className={styles.navbar}>
         <div className={styles.navbarContent}>
           <div className={styles.logo} onClick={() => handleNavigation("/")}>
-            <span>Pharma Flow</span>
+            <span>Pulse Response</span>
           </div>
           <button className={styles.menuButton} onClick={toggleMenu}>
             <span className={styles.hamburger}></span>
@@ -58,10 +58,8 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Sidebar Overlay */}
       <div className={`${styles.overlay} ${isMenuOpen ? styles.overlayOpen : ""}`} onClick={closeMenu}></div>
 
-      {/* Sidebar Menu */}
       <div className={`${styles.sidebar} ${isMenuOpen ? styles.sidebarOpen : ""}`}>
         <div className={styles.sidebarHeader}>
           <button className={styles.backButton} onClick={closeMenu}>
@@ -77,7 +75,10 @@ export default function Navbar() {
             Profile
           </button>
           <button className={styles.menuItem} onClick={() => handleNavigation("/medicines")}>
-            Products
+            Medicines
+          </button>
+          <button className={styles.menuItem} onClick={() => handleNavigation("/pharmacist")}>
+            Pharmacists
           </button>
           <button className={styles.menuItem} onClick={() => handleNavigation("/cart")}>
             Cart
@@ -88,17 +89,17 @@ export default function Navbar() {
           <button className={styles.menuItem} onClick={() => handleNavigation("/payment")}>
             Payment History
           </button>
+          <button className={styles.menuItem} onClick={() => handleNavigation("/deliver")}>
+            Deliveries
+          </button>
+          <button className={styles.menuItem} onClick={() => handleNavigation("/notification")}>
+            Notifications
+          </button>
           
 
-          {userRole === "super_admin" && (
+          {(userRole === "super_admin" || userRole === "admin") && (
             <button className={styles.menuItem} onClick={() => handleNavigation("/admin-dashboard")}>
               Admin Dashboard
-            </button>
-          )}
-
-          {userRole === "staff" && (
-            <button className={styles.menuItem} onClick={() => handleNavigation("/staff-dashboard")}>
-              Staff Dashboard
             </button>
           )}
 

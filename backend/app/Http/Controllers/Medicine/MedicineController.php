@@ -106,10 +106,10 @@ class MedicineController extends Controller
         try {
             $query = Medicine::query();
 
-            if ($request->has('category_id')) {
-                $categoryId = $request->input('category_id');
-                $query->whereHas('categories', function ($q) use ($categoryId) {
-                    $q->where('categories.id', $categoryId);
+            if ($request->has('category')) {
+                $categoryName = $request->input('category');
+                $query->whereHas('categories', function ($q) use ($categoryName) {
+                    $q->where('categories.name', $categoryName);
                 });
             }
 
@@ -118,9 +118,18 @@ class MedicineController extends Controller
                 $query->where('name', 'like', '%' . $name . '%');
             }
 
-            if ($request->has('sort_by') && $request->input('sort_by') === 'price') {
-                $sortOrder = $request->input('sort_order', 'asc');
+             if ($request->has('sort_by_price')) {
+                $sortOrder = $request->input('sort_by_price', 'asc');
                 $query->orderBy('price', $sortOrder);
+            }
+
+            if ($request->has('is_available')) {
+                $isAvailable = $request->input('is_available');
+                if ($isAvailable === 'true') {
+                    $query->where('stock', '>', 0);
+                } else {
+                    $query->where('stock', 0);
+                }
             }
 
             $medicines = $query->paginate(10);

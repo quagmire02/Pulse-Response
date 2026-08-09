@@ -41,13 +41,19 @@ export default function MedicineDetailCard({ medicine, onUpdate, onDelete, isAdm
 
         <div className={styles.details}>
           <div className={styles.detailItem}>
-            <span className={styles.label}>Stock:</span>
-            <span className={styles.value}>{medicine.stock}</span>
+            <span className={styles.label}>Dosage:</span>
+            <span className={styles.value}>{medicine.dosage}</span>
           </div>
 
           <div className={styles.detailItem}>
-            <span className={styles.label}>Sold:</span>
-            <span className={styles.value}>{medicine.sold}</span>
+            <span className={styles.label}>Brand:</span>
+            <span className={styles.value}>{medicine.brand}</span>
+          </div>
+        </div>
+        <div className={styles.details}>
+          <div className={styles.detailItem}>
+            <span className={styles.label}>Stock:</span>
+            <span className={styles.value}>{medicine.stock}</span>
           </div>
 
           <div className={styles.detailItem}>
@@ -56,13 +62,21 @@ export default function MedicineDetailCard({ medicine, onUpdate, onDelete, isAdm
               {medicine.stock > 0 ? "Yes" : "No"}
             </span>
           </div>
-
-          <div className={styles.detailItem}>
-            <span className={styles.label}>Category: </span>
-            <span className={styles.value}>
-              {medicine.categories?.map(c => c.name).join(", ")}
-            </span>
-          </div>
+        </div>
+        <div className={styles.detailsBig}>
+          {medicine.categories && medicine.categories.length > 0 && (
+            <div className={styles.detailItem}>
+              <span className={styles.label}>Category: </span>
+              <span className={styles.category}>
+              {medicine.categories.map((category, index) => (
+                <div key={category.id}>
+                  {category.name}
+                  {index < medicine.categories.length - 1 && ", "}
+                </div>
+                ))}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className={styles.actions}>

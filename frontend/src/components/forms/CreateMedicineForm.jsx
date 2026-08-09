@@ -7,6 +7,9 @@ import styles from "./CreateMedicineForm.module.css";
 function FormContent({ categories, errors, successMessage }) {
   const { pending } = useFormStatus();
   const [fileName, setFileName] = useState("No file chosen");
+  const [categoryInputs, setCategoryInputs] = useState([
+    { id: Date.now(), value: "" },
+  ]);
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -15,7 +18,30 @@ function FormContent({ categories, errors, successMessage }) {
     } else {
       setFileName("No file chosen");
     }
-  }
+  };
+
+  const handleAddCategory = () => {
+    setCategoryInputs([
+      ...categoryInputs,
+      { id: Date.now(), value: "" },
+    ]);
+  };
+
+  const handleRemoveCategory = (id) => {
+    if (categoryInputs.length > 1) {
+      setCategoryInputs(categoryInputs.filter((input) => input.id !== id));
+    }
+  };
+
+  const handleCategoryChange = (id, event) => {
+    const newInputs = categoryInputs.map((input) => {
+      if (input.id === id) {
+        return { ...input, value: event.target.value };
+      }
+      return input;
+    });
+    setCategoryInputs(newInputs);
+  };
 
   return (
     <>
@@ -38,62 +64,50 @@ function FormContent({ categories, errors, successMessage }) {
       </div>
 
       <div className={styles.formGroup}>
-        <label htmlFor="category" className={styles.label}>
-          Category *
-        </label>
-        <select
-          id="category"
-          name="category_ids[]"
-          className={`${styles.select} ${
-            errors.category_ids ? styles.inputError : ""
-          }`}
-          required
-          disabled={pending}
-        >
-          <option value="">Select a category</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-        {errors.category_ids && (
-          <span className={styles.errorText}>{errors.category_ids}</span>
+        <label className={styles.label}>Category *</label>
+        {categoryInputs.map((input, index) => (
+          <div key={input.id} className={styles.dynamicField}>
+            <select
+              id={`category-${input.id}`}
+              name="category_ids[]"
+              className={`${styles.select} ${errors.category ? styles.inputError : ""}`}
+              required
+              disabled={pending}
+              value={input.value}
+              onChange={(e) => handleCategoryChange(input.id, e)}
+            >
+              <option value="">Select a category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            {categoryInputs.length > 1 && (
+              <button
+                type="button"
+                className={styles.removeButton}
+                onClick={() => handleRemoveCategory(input.id)}
+                disabled={pending}
+              >
+                -
+              </button>
+            )}
+            {index === categoryInputs.length - 1 && (
+              <button
+                type="button"
+                className={styles.addButton}
+                onClick={handleAddCategory}
+                disabled={pending}
+              >
+                +
+              </button>
+            )}
+          </div>
+        ))}
+        {errors.category && (
+          <span className={styles.errorText}>{errors.category}</span>
         )}
-      </div>
-
-      <div className={styles.formRow}>
-        <div className={styles.formGroup}>
-          <label htmlFor="brand" className={styles.label}>
-            Brand *
-          </label>
-          <input
-            type="text"
-            id="brand"
-            name="brand"
-            className={`${styles.input} ${errors.brand ? styles.inputError : ""}`}
-            placeholder="Enter brand name"
-            required
-            disabled={pending}
-          />
-          {errors.brand && <span className={styles.errorText}>{errors.brand}</span>}
-        </div>
-
-        <div className={styles.formGroup}>
-          <label htmlFor="dosage" className={styles.label}>
-            Dosage *
-          </label>
-          <input
-            type="text"
-            id="dosage"
-            name="dosage"
-            className={`${styles.input} ${errors.dosage ? styles.inputError : ""}`}
-            placeholder="e.g. 500mg"
-            required
-            disabled={pending}
-          />
-          {errors.dosage && <span className={styles.errorText}>{errors.dosage}</span>}
-        </div>
       </div>
 
       <div className={styles.formGroup}>
@@ -158,6 +172,40 @@ function FormContent({ categories, errors, successMessage }) {
           {errors.stock && (
             <span className={styles.errorText}>{errors.stock}</span>
           )}
+        </div>
+      </div>
+
+      <div className={styles.formRow}>
+        <div className={styles.formGroup}>
+          <label htmlFor="dosage" className={styles.label}>
+            Dosage *
+          </label>
+          <input
+            type="text"
+            id="dosage"
+            name="dosage"
+            className={`${styles.input} ${errors.dosage ? styles.inputError : ""}`}
+            placeholder="Enter dosage"
+            required
+            disabled={pending}
+          />
+          {errors.dosage && <span className={styles.errorText}>{errors.dosage}</span>}
+        </div>
+
+        <div className={styles.formGroup}>
+          <label htmlFor="brand" className={styles.label}>
+            Brand *
+          </label>
+          <input
+            type="text"
+            id="brand"
+            name="brand"
+            className={`${styles.input} ${errors.brand ? styles.inputError : ""}`}
+            placeholder="Enter medicine Brand"
+            required
+            disabled={pending}
+          />
+          {errors.brand && <span className={styles.errorText}>{errors.brand}</span>}
         </div>
       </div>
 
