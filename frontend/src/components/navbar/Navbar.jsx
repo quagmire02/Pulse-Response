@@ -4,12 +4,14 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { LogoutButton } from "@/components/buttons/buttons"
 import { getUserIdAction, getUserRoleAction } from "@/actions/authActions"
+import { getPharmacistAction } from "@/actions/pharmacistActions"
 import styles from "./Navbar.module.css"
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [userId, setUserId] = useState(null)
   const [userRole, setUserRole] = useState(null)
+  const [isDoctor, setIsDoctor] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -18,6 +20,10 @@ export default function Navbar() {
       const role = await getUserRoleAction()
       setUserId(id)
       setUserRole(role)
+      if (id) {
+        const result = await getPharmacistAction(id)
+        setIsDoctor(!result.error)
+      }
     }
     fetchUserData()
   }, [])
@@ -96,6 +102,12 @@ export default function Navbar() {
             Notifications
           </button>
           
+
+          {isDoctor && (
+            <button className={styles.menuItem} onClick={() => handleNavigation(`/pharmacist/${userId}`)}>
+              My Doctor Profile
+            </button>
+          )}
 
           {(userRole === "super_admin" || userRole === "admin") && (
             <button className={styles.menuItem} onClick={() => handleNavigation("/admin-dashboard")}>

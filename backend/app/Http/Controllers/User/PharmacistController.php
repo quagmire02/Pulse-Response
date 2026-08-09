@@ -8,6 +8,8 @@ use App\Http\Requests\User\UpdatePharmacistRequest;
 use App\Models\Pharmacist;
 use App\Models\User;
 use App\Models\Cart;
+use App\Models\DoctorReview;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
@@ -43,10 +45,34 @@ class PharmacistController extends Controller
      * )
      * )
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $pharmacists = Pharmacist::with('user')->paginate(10);
+            $query = Pharmacist::with('user');
+
+            if ($request->filled('search')) {
+                $query->search($request->search);
+            }
+
+            if ($request->filled('speciality')) {
+                $query->filterBySpeciality($request->speciality);
+            }
+
+            if ($request->filled('location')) {
+                $query->filterByLocation($request->location);
+            }
+
+            if ($request->filled('consultation')) {
+                $query->where('is_consultation', filter_var($request->consultation, FILTER_VALIDATE_BOOLEAN));
+            }
+
+            if ($request->filled('min_rating')) {
+                $query->filterByRating((float) $request->min_rating);
+            } else {
+                $query->withAvg('reviews', 'rating');
+            }
+
+            $pharmacists = $query->paginate(10);
             return response()->json($pharmacists, 200);
         } catch (\Exception $e) {
             Log::error($e->getMessage());
@@ -138,7 +164,7 @@ class PharmacistController extends Controller
      */
     public function create(RegisterPharmacistRequest $request)
     {
-        if (!Auth::user()->isSuperAdmin()) {
+        if (!Auth::user()->isSuperAdmin() && !Auth::user()->isAdmin()) {
             return response()->json([
                 "errors" => "You are not authorized to create a pharmacist account."
             ], 403);
@@ -148,8 +174,8 @@ class PharmacistController extends Controller
             $validated = $request->validated();
 
             $userData = [
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
+                'first_name' => isset($validated['first_name']) ? $validated['first_name'] : null,
+                'last_name' => isset($validated['last_name']) ? $validated['last_name'] : null,
                 'email' => $validated['email'],
                 'username' => $validated['username'],
                 'password' => $validated['password'],
@@ -160,9 +186,6 @@ class PharmacistController extends Controller
             }
 
             $user = User::create($validated);
-
-            $user->is_admin = true;
-            $user->save();
 
             Cart::create([
                 'user_id' => $user->id,

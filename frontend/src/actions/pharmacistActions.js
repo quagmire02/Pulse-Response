@@ -3,8 +3,7 @@ import {
   getPharmacists,
   getPharmacist,
   createPharmacist,
-  updatePharmacist,
-  deletePharmacist,
+  updatePharmacist
 } from "@/libs/api";
 import { deleteSessionCookie } from "@/libs/cookie";
 
@@ -61,9 +60,9 @@ export const actionError = async (response) => {
   return { error: { error: response.error } };
 };
 
-export const getPharmacistsAction = async () => {
+export const getPharmacistsAction = async (queryParams = {}) => {
   try {
-    const response = await getPharmacists();
+    const response = await getPharmacists(queryParams);
 
     if (response.error) {
       return { error: response.error };
@@ -111,6 +110,7 @@ export const createPharmacistAction = async (formData) => {
   const speciality = formData.get("speciality");
   const bio = formData.get("bio");
   const is_consultation = formData.get("is_consultation");
+  console.log("is_consultation", is_consultation);
 
   const errors = {};
 
@@ -201,22 +201,5 @@ export const updatePharmacistAction = async (id, formData) => {
   } catch (error) {
     console.error(error);
     return { error: error.message || "Failed to update user." };
-  }
-};
-
-export const deletePharmacistAction = async (id) => {
-  try {
-    const response = await deletePharmacist(id);
-
-    if (response.error) {
-      return { error: response.error };
-    }
-
-    await deleteSessionCookie();
-    
-    return { success: "Pharmacist deleted" };
-  } catch (error) {
-    console.error(error);
-    return { error: error.message || "Failed to delete user." };
   }
 };

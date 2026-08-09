@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
 
 // App/Models/Pharmacist.php
 class Pharmacist extends Model
@@ -54,8 +55,45 @@ class Pharmacist extends Model
         return $this->hasMany(Slot::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(DoctorReview::class);
+    }
+
     public function userWithUsername()
     {
         return $this->belongsTo(User::class)->select('id', 'username');
+    }
+
+    public function scopeSearch(Builder $query, ?string $search): Builder
+    {
+        if (!$search) return $query;
+        return $query->where('speciality', 'ilike', "%{$search}%")
+            ->orWhereHas('user', fn($q) => $q->where('first_name', 'ilike', "%{$search}%")
+                ->orWhere('last_name', 'ilike', "%{$search}%")
+                ->orWhere('username', 'ilike', "%{$search}%"));
+    }
+
+    public function scopeFilterBySpeciality(Builder $query, ?string $speciality): Builder
+    {
+        if (!$speciality) return $query;
+        return $query->where('speciality', 'ilike', "%{$speciality}%");
+    }
+
+    public function scopeFilterByLocation(Builder $query, ?string $location): Builder
+    {
+        if (!$location) return $query;
+        return $query->whereHas('user', fn($q) => $q->where('address', 'ilike', "%{$location}%"));
+    }
+
+    public function scopeFilterByRating(Builder $query, ?float $minRating): Builder
+    {
+        if (!$minRating) return $query;
+        return $query->has('reviews')
+            ->withAvg('reviews', 'rating')
+            ->orderByRaw('reviews_avg_rating DESC NULLS LAST')
+            ->havingRaw('AVG(doctor_reviews.rating) >= ?', [$minRating])
+            ->join('doctor_reviews', 'doctor_reviews.pharmacist_id', '=', 'pharmacists.id')
+            ->groupBy('pharmacists.id');
     }
 }
