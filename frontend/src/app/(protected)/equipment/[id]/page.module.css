@@ -1,0 +1,25 @@
+.container {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  margin-top: 5rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.error {
+  background: #fee;
+  color: #c33;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #fcc;
+}
+
+@media (max-width: 768px) {
+  .container { padding: 15px; }
+}
