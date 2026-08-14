@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { LogoutButton } from "@/components/buttons/buttons"
 import { getUserIdAction, getUserRoleAction } from "@/actions/authActions"
 import { getPharmacistAction } from "@/actions/pharmacistActions"
+import { getVendorAction } from "@/actions/vendorActions"
 import styles from "./Navbar.module.css"
 
 export default function Navbar() {
@@ -12,6 +13,7 @@ export default function Navbar() {
   const [userId, setUserId] = useState(null)
   const [userRole, setUserRole] = useState(null)
   const [isDoctor, setIsDoctor] = useState(false)
+  const [isVendor, setIsVendor] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -23,6 +25,9 @@ export default function Navbar() {
       if (id) {
         const result = await getPharmacistAction(id)
         setIsDoctor(!result.error)
+        
+        const vendorResult = await getVendorAction(id)
+        setIsVendor(!vendorResult.error)
       }
     }
     fetchUserData()
@@ -83,6 +88,9 @@ export default function Navbar() {
           <button className={styles.menuItem} onClick={() => handleNavigation("/medicines")}>
             Medicines
           </button>
+          <button className={styles.menuItem} onClick={() => handleNavigation("/equipment")}>
+            Equipments
+          </button>
           <button className={styles.menuItem} onClick={() => handleNavigation("/pharmacist")}>
             Pharmacists
           </button>
@@ -91,6 +99,9 @@ export default function Navbar() {
           </button>
           <button className={styles.menuItem} onClick={() => handleNavigation("/orders")}>
             Orders
+          </button>
+           <button className={styles.menuItem} onClick={() => handleNavigation("/subscriptions")}>
+            Subscriptions
           </button>
           <button className={styles.menuItem} onClick={() => handleNavigation("/payment")}>
             Payment History
@@ -106,6 +117,12 @@ export default function Navbar() {
           {isDoctor && (
             <button className={styles.menuItem} onClick={() => handleNavigation(`/pharmacist/${userId}`)}>
               My Doctor Profile
+            </button>
+          )}
+
+          {isVendor && (
+            <button className={styles.menuItem} onClick={() => handleNavigation(`/vendor/${userId}`)}>
+              My Vendor Profile
             </button>
           )}
 

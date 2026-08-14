@@ -1,0 +1,43 @@
+.mainCard {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+}
+
+.header {
+  margin-bottom: 10px;
+}
+
+.paymentId {
+  font-size: 18px;
+  color: #333;
+  font-weight: bold;
+}
+
+.detail {
+  margin-bottom: 8px;
+}
+
+.label {
+  color: #666;
+}
+
+.value {
+  font-weight: bold;
+}
+
+.paymentType {
+  font-weight: bold;
+  text-transform: capitalize;
+}
+
+.paymentType.cash {
+  color: #28a745;
+}
+
+.paymentType.card {
+  color: #007bff;
+}

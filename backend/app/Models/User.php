@@ -134,6 +134,11 @@ class User extends Authenticatable
         return $this->hasOne(Pharmacist::class);
     }
 
+    public function vendor(): HasOne
+    {
+        return $this->hasOne(Vendor::class);
+    }
+
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);

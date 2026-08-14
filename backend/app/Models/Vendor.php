@@ -4,21 +4,37 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
 
 class Vendor extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'email',
-        'phone',
-        'address',
+        'user_id',
+        'company_name',
+        'license_num',
         'description',
-        'is_active',
+        'contact_phone',
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-    ];
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function equipment(): HasMany
+    {
+        return $this->hasMany(Equipment::class);
+    }
+
+    public function scopeSearch(Builder $query, string $search): Builder
+    {
+        return $query->where('company_name', 'ilike', "%{$search}%")
+            ->orWhereHas('user', fn($q) => $q->where('first_name', 'ilike', "%{$search}%")
+                ->orWhere('last_name', 'ilike', "%{$search}%")
+                ->orWhere('username', 'ilike', "%{$search}%"));
+    }
 }

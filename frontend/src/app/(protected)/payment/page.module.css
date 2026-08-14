@@ -1,0 +1,55 @@
+.container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  margin-top: 10px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5rem;
+}
+
+.backLink {
+  padding: 10px 20px;
+  background-color: #6c757d;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px
+}
+
+.backLink:hover {
+  background-color: #5a6268;
+}
+
+.paymentsGrid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.confirmSection {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.confirmButton {
+  display: inline-block;
+  padding: 15px 30px;
+  background-color: #28a745;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.confirmButton:hover {
+  background-color: #218838;
+}
+
+.error {
+  padding: 20px;
+  color: red;
+}

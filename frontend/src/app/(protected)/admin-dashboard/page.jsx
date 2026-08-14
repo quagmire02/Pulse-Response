@@ -36,6 +36,13 @@ export default function AdminDashboard() {
       icon: "👥",
       route: "/pharmacist",
     },
+    {
+      id: 5,
+      title: "Manage Vendors",
+      description: "Create and manage vendor accounts",
+      icon: "🏪",
+      route: "/admin-dashboard/vendors",
+    },
   ]
 
   const handleCardClick = (route) => {

@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Equipment;
 
 use App\Http\Requests\BaseRequest;
-use Illuminate\Validation\Rule;
 
 class RegisterEquipmentRequest extends BaseRequest
 {
@@ -12,21 +11,28 @@ class RegisterEquipmentRequest extends BaseRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('is_available') && is_string($this->is_available)) {
+            $this->merge([
+                'is_available' => filter_var($this->is_available, FILTER_VALIDATE_BOOLEAN),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
-            'name'           => ['required', 'string'],
-            'description'    => ['nullable', 'string'],
-            'price'          => ['required', 'numeric', 'min:1'],
-            'size'           => ['required', 'string'],
-            'safety_rules'   => ['nullable', 'string'],
-            'condition_notes'=> ['nullable', 'string'],
-            'rental_status'  => ['sometimes', Rule::in(['available', 'rented', 'maintenance'])],
-            'stock'          => ['required', 'integer', 'min:0'],
-            'image_url'      => [
-                'nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048',
-                Rule::dimensions()->maxWidth(1000)->maxHeight(1000),
-            ],
+            'name'          => ['required', 'string', 'max:255'],
+            'description'   => ['nullable', 'string'],
+            'category'      => ['required', 'string', 'max:255'],
+            'price_per_day' => ['required', 'numeric', 'min:0'],
+            'size'          => ['nullable', 'string', 'max:100'],
+            'quantity'      => ['required', 'integer', 'min:0'],
+            'safety_rules'  => ['nullable', 'string'],
+            'condition'     => ['required', 'in:new,good,fair'],
+            'is_available'  => ['sometimes', 'boolean'],
+            'image'         => ['nullable', 'image', 'max:2048'],
         ];
     }
 }

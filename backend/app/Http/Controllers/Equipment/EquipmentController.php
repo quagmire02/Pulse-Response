@@ -6,149 +6,199 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Equipment\RegisterEquipmentRequest;
 use App\Http\Requests\Equipment\UpdateEquipmentRequest;
 use App\Models\Equipment;
-use Illuminate\Http\JsonResponse;
+use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class EquipmentController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth:sanctum')->except(['index', 'show']);
-    }
-
-    private function imageHandler(Request $request, array &$validated, ?Equipment $equipment = null): void
-    {
-        if ($request->hasFile('image_url')) {
-            if ($equipment && $equipment->image_url) {
-                $this->deleteOldImage($equipment->image_url);
-            }
-            $path = $request->file('image_url')->store('equipment_images', 'public');
-            $validated['image_url'] = Storage::url($path);
-        } elseif (array_key_exists('image_url', $validated) && is_null($validated['image_url'])) {
-            if ($equipment && $equipment->image_url) {
-                $this->deleteOldImage($equipment->image_url);
-            }
-            $validated['image_url'] = null;
-        } else {
-            unset($validated['image_url']);
-        }
-    }
-
-    private function deleteOldImage(?string $imageUrl): void
-    {
-        if ($imageUrl) {
-            $path = str_replace(Storage::url(''), '', $imageUrl);
-            if (Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
-            }
-        }
-    }
-
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Equipment::query();
+            $query = Equipment::with('vendor.user');
 
-            if ($request->has('name')) {
-                $query->where('name', 'like', '%' . $request->input('name') . '%');
+            if ($request->filled('search')) {
+                $query->search($request->search);
             }
 
-            if ($request->has('rental_status')) {
-                $query->where('rental_status', $request->input('rental_status'));
+            if ($request->filled('category')) {
+                $query->filterByCategory($request->category);
             }
 
-            if ($request->has('sort_by') && $request->input('sort_by') === 'price') {
-                $query->orderBy('price', $request->input('sort_order', 'asc'));
+            if ($request->filled('condition')) {
+                $query->filterByCondition($request->condition);
             }
 
-            return response()->json($query->paginate(10), 200);
+            if ($request->boolean('available_only')) {
+                $query->availableOnly();
+            }
+
+            if ($request->filled('min_price')) {
+                $query->where('price_per_day', '>=', $request->min_price);
+            }
+
+            if ($request->filled('max_price')) {
+                $query->where('price_per_day', '<=', $request->max_price);
+            }
+
+            $equipment = $query->paginate(10);
+            return response()->json($equipment, 200);
         } catch (\Exception $e) {
-            Log::error($e);
-            return response()->json(['errors' => $e->getMessage()], 500);
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
         }
     }
 
-    public function show(string $equipment): JsonResponse
+    public function show(string $id): JsonResponse
     {
         try {
-            $found = Equipment::find($equipment);
+            $equipment = Equipment::with('vendor.user')->find($id);
 
-            if (!$found) {
-                return response()->json(['errors' => 'Equipment not found'], 404);
+            if (!$equipment) {
+                return response()->json(['errors' => 'Equipment not found.'], 404);
             }
 
-            return response()->json($found, 200);
+            return response()->json($equipment, 200);
         } catch (\Exception $e) {
-            Log::error($e);
-            return response()->json(['errors' => $e->getMessage()], 500);
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
         }
     }
 
     public function create(RegisterEquipmentRequest $request): JsonResponse
     {
-        if (!Auth::user()->isAdmin()) {
-            return response()->json(['errors' => 'You are not authorized to create equipment.'], 403);
+        $user = Auth::user();
+        $vendor = Vendor::where('user_id', $user->id)->first();
+
+        if (!$vendor && !$user->isAdmin() && !$user->isSuperAdmin()) {
+            return response()->json(['errors' => 'Only vendors or admins can add equipment.'], 403);
         }
 
-        $validated = $request->validated();
-        $this->imageHandler($request, $validated);
+        // Admins can pass vendor_id explicitly, vendors use their own
+        if ($user->isAdmin() || $user->isSuperAdmin()) {
+            $vendorId = $request->input('vendor_id');
+            if (!$vendorId) {
+                return response()->json(['errors' => 'vendor_id is required for admins.'], 422);
+            }
+            $vendor = Vendor::find($vendorId);
+            if (!$vendor) {
+                return response()->json(['errors' => 'Vendor not found.'], 404);
+            }
+        }
 
         try {
-            Equipment::create($validated);
-            return response()->json(['success' => 'Equipment created successfully'], 201);
+            $validated = $request->validated();
+            $validated['vendor_id'] = $vendor->id;
+
+            if ($request->hasFile('image')) {
+                $validated['image'] = $request->file('image')->store('equipment', 'public');
+            }
+
+            // Auto-update availability based on quantity
+            if (isset($validated['quantity'])) {
+                $validated['is_available'] = $validated['quantity'] > 0;
+            }
+
+            $equipment = Equipment::create($validated);
+
+            return response()->json(['success' => 'Equipment created successfully.', 'data' => $equipment], 201);
         } catch (\Exception $e) {
-            Log::error($e);
-            return response()->json(['errors' => $e->getMessage()], 500);
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
         }
     }
 
-    public function update(UpdateEquipmentRequest $request, string $equipment): JsonResponse
+    public function update(UpdateEquipmentRequest $request, string $id): JsonResponse
     {
-        if (!Auth::user()->isAdmin()) {
-            return response()->json(['errors' => 'You are not authorized to update this equipment.'], 403);
-        }
-
         try {
-            $found = Equipment::find($equipment);
+            $equipment = Equipment::find($id);
 
-            if (!$found) {
-                return response()->json(['errors' => 'Equipment not found'], 404);
+            if (!$equipment) {
+                return response()->json(['errors' => 'Equipment not found.'], 404);
+            }
+
+            $user = Auth::user();
+            $vendor = Vendor::where('user_id', $user->id)->first();
+            $isOwner = $vendor && $vendor->id === $equipment->vendor_id;
+
+            if (!$isOwner && !$user->isAdmin() && !$user->isSuperAdmin()) {
+                return response()->json(['errors' => 'You are not authorized to update this equipment.'], 403);
             }
 
             $validated = $request->validated();
-            $this->imageHandler($request, $validated, $found);
-            $found->update($validated);
 
-            return response()->json(['success' => 'Equipment updated successfully'], 200);
+            if ($request->hasFile('image')) {
+                if ($equipment->image) {
+                    Storage::disk('public')->delete($equipment->image);
+                }
+                $validated['image'] = $request->file('image')->store('equipment', 'public');
+            }
+
+            // Auto-update availability based on quantity
+            if (isset($validated['quantity'])) {
+                $validated['is_available'] = $validated['quantity'] > 0;
+            }
+
+            $equipment->update($validated);
+
+            return response()->json(['success' => 'Equipment updated successfully.', 'data' => $equipment], 200);
         } catch (\Exception $e) {
-            Log::error($e);
-            return response()->json(['errors' => $e->getMessage()], 500);
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
         }
     }
 
-    public function destroy(string $equipment): JsonResponse
+    public function destroy(string $id): JsonResponse
     {
-        if (!Auth::user()->isAdmin()) {
-            return response()->json(['errors' => 'You are not authorized to delete this equipment.'], 403);
-        }
-
         try {
-            $found = Equipment::find($equipment);
+            $equipment = Equipment::find($id);
 
-            if (!$found) {
-                return response()->json(['errors' => 'Equipment not found'], 404);
+            if (!$equipment) {
+                return response()->json(['errors' => 'Equipment not found.'], 404);
             }
 
-            $this->deleteOldImage($found->image_url);
-            $found->delete();
+            $user = Auth::user();
+            $vendor = Vendor::where('user_id', $user->id)->first();
+            $isOwner = $vendor && $vendor->id === $equipment->vendor_id;
+
+            if (!$isOwner && !$user->isAdmin() && !$user->isSuperAdmin()) {
+                return response()->json(['errors' => 'You are not authorized to delete this equipment.'], 403);
+            }
+
+            if ($equipment->image) {
+                Storage::disk('public')->delete($equipment->image);
+            }
+
+            $equipment->delete();
 
             return response()->json(null, 204);
         } catch (\Exception $e) {
-            Log::error($e);
-            return response()->json(['errors' => $e->getMessage()], 500);
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
+        }
+    }
+
+    // GET /vendors/{vendor}/equipment
+    public function byVendor(string $vendorUserId): JsonResponse
+    {
+        try {
+            $vendor = Vendor::where('user_id', $vendorUserId)->first();
+
+            if (!$vendor) {
+                return response()->json(['errors' => 'Vendor not found.'], 404);
+            }
+
+            $equipment = Equipment::with('vendor.user')
+                ->where('vendor_id', $vendor->id)
+                ->paginate(10);
+
+            return response()->json($equipment, 200);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
         }
     }
 }

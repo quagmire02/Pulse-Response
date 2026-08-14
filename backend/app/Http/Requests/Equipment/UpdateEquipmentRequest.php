@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Equipment;
 
 use App\Http\Requests\BaseRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateEquipmentRequest extends BaseRequest
 {
@@ -12,21 +11,28 @@ class UpdateEquipmentRequest extends BaseRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('is_available') && is_string($this->is_available)) {
+            $this->merge([
+                'is_available' => filter_var($this->is_available, FILTER_VALIDATE_BOOLEAN),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
-            'name'           => ['sometimes', 'required', 'string'],
-            'description'    => ['sometimes', 'nullable', 'string'],
-            'price'          => ['sometimes', 'required', 'numeric', 'min:0'],
-            'size'           => ['sometimes', 'required', 'string'],
-            'safety_rules'   => ['sometimes', 'nullable', 'string'],
-            'condition_notes'=> ['sometimes', 'nullable', 'string'],
-            'rental_status'  => ['sometimes', Rule::in(['available', 'rented', 'maintenance'])],
-            'stock'          => ['sometimes', 'required', 'integer', 'min:0'],
-            'image_url'      => [
-                'nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048',
-                Rule::dimensions()->maxWidth(1000)->maxHeight(1000),
-            ],
+            'name'          => ['sometimes', 'string', 'max:255'],
+            'description'   => ['sometimes', 'nullable', 'string'],
+            'category'      => ['sometimes', 'string', 'max:255'],
+            'price_per_day' => ['sometimes', 'numeric', 'min:0'],
+            'size'          => ['sometimes', 'nullable', 'string', 'max:100'],
+            'quantity'      => ['sometimes', 'integer', 'min:0'],
+            'safety_rules'  => ['sometimes', 'nullable', 'string'],
+            'condition'     => ['sometimes', 'in:new,good,fair'],
+            'is_available'  => ['sometimes', 'boolean'],
+            'image'         => ['sometimes', 'nullable', 'image', 'max:2048'],
         ];
     }
 }
