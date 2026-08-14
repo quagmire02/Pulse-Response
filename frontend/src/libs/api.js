@@ -218,3 +218,47 @@ export const updateConsultation = async (id, data) => {
 export const deleteConsultation = async (id) => {
   return apiClient.delete(`/consultations/${id}/`);
 };
+
+export const getVendors = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/vendors/?${params.toString()}`);
+};
+
+export const getVendor = async (userId) => {
+  return apiClient.get(`/vendors/${userId}/`);
+};
+
+export const createVendor = async (data) => {
+  return apiClient.post('/vendors/', data);
+};
+
+export const updateVendor = async (userId, data) => {
+  return apiClient.patch(`/vendors/${userId}/`, data);
+};
+
+export const getEquipmentList = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/equipment/?${params.toString()}`);
+};
+
+export const getEquipmentItem = async (id) => {
+  return apiClient.get(`/equipment/${id}/`);
+};
+
+export const getVendorEquipment = async (userId, queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/vendors/${userId}/equipment/?${params.toString()}`);
+};
+
+export const createEquipment = async (data) => {
+  return apiClient.post('/equipment/', data, {}, true);
+};
+
+export const updateEquipment = async (id, data) => {
+  data.append('_method', 'POST');
+  return apiClient.post(`/equipment/${id}/`, data, {}, true);
+};
+
+export const deleteEquipment = async (id) => {
+  return apiClient.delete(`/equipment/${id}/`);
+};

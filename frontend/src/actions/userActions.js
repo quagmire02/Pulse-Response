@@ -6,7 +6,7 @@ import {
   updateUser,
   deleteUser,
 } from "@/libs/api";
-import { deleteSessionCookie } from "@/libs/cookie";
+import { deleteSessionCookie, getUserIdFromSession } from "@/libs/cookie";
 
 export const actionError = async (response) => {
   if (typeof response.error === "object") {
@@ -181,7 +181,14 @@ export const deleteUserAction = async (id) => {
       return { error: response.error };
     }
 
-    await deleteSessionCookie();
+    try {
+      const loggedInId = await getUserIdFromSession();
+      if (Number(loggedInId) === Number(id)) {
+        await deleteSessionCookie();
+      }
+    } catch (e) {
+      console.error("Error clearing session:", e);
+    }
 
     return { success: "User deleted" };
   } catch (error) {

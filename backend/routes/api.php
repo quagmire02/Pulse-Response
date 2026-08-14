@@ -13,6 +13,8 @@ use App\Http\Controllers\Shop\PaymentController;
 use App\Http\Controllers\Shop\DeliveryController;
 use App\Http\Controllers\Misc\NotificationController;
 use App\Http\Controllers\Misc\ConsultationController;
+use App\Http\Controllers\User\VendorController;
+use App\Http\Controllers\Equipment\EquipmentController;
 
 
 Route::post('/login', [AuthController::class, 'login'])
@@ -26,6 +28,12 @@ Route::get('/medicines', [MedicineController::class, 'index'])
 
 Route::get('/medicines/{id}', [MedicineController::class, 'show'])
     ->name('api.getMedicine');
+
+Route::get('/equipment', [EquipmentController::class, 'index'])
+    ->name('api.getEquipment');
+
+Route::get('/equipment/{id}', [EquipmentController::class, 'show'])
+    ->name('api.getEquipmentItem');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])
@@ -171,4 +179,28 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/consultations/{consultation}', [ConsultationController::class, 'destroy'])
         ->name('api.deleteConsultation');
+
+    Route::get('/vendors', [VendorController::class, 'index'])
+        ->name('api.getVendors');
+
+    Route::get('/vendors/{user}', [VendorController::class, 'show'])
+        ->name('api.getVendor');
+
+    Route::post('/vendors', [VendorController::class, 'create'])
+        ->name('api.createVendor');
+
+    Route::patch('/vendors/{user}', [VendorController::class, 'update'])
+        ->name('api.updateVendor');
+
+    Route::get('/vendors/{user}/equipment', [EquipmentController::class, 'byVendor'])
+        ->name('api.getVendorEquipment');
+
+    Route::post('/equipment', [EquipmentController::class, 'create'])
+        ->name('api.createEquipment');
+
+    Route::post('/equipment/{id}', [EquipmentController::class, 'update'])
+        ->name('api.updateEquipment');
+
+    Route::delete('/equipment/{id}', [EquipmentController::class, 'destroy'])
+        ->name('api.deleteEquipment');
     });

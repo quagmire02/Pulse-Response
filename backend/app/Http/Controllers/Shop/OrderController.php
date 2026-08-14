@@ -279,7 +279,7 @@ class OrderController extends Controller
                     throw new \Exception('Cart is empty.');
                 }
 
-                $totalAmount = 0;
+                $subtotal = 0;
                 foreach ($cart->cartItems as $cartItem) {
                     if ($cartItem->medicine) {
                         $medicine = $cartItem->medicine;
@@ -288,9 +288,14 @@ class OrderController extends Controller
                             throw new \Exception('Insufficient stock for medicine ' . $medicine->name);
                         }
 
-                        $totalAmount += $cartItem->quantity * $cartItem->medicine->price;
+                        $subtotal += $cartItem->quantity * $cartItem->medicine->price;
                     }
                 }
+
+                // Apply subscription discount
+                $discountRate = Order::getSubscriptionDiscountRate($validated['subscribe_type']);
+                $discountAmount = round($subtotal * $discountRate, 2);
+                $totalAmount = $subtotal - $discountAmount;
 
                 $est_del_date = now()->addDays(3);
                 if ($validated['delivery_type'] === 'rapid') {
@@ -301,11 +306,16 @@ class OrderController extends Controller
                     $totalAmount += 20;
                 }
 
+                // Calculate next delivery date for subscriptions
+                $nextDeliveryDate = Order::calculateNextDeliveryDate($validated['subscribe_type']);
+
                 $order = Order::create([
                     'user_id' => $user->id,
                     'total_amount' => $totalAmount,
+                    'discount_amount' => $discountAmount,
                     'order_date' => now(),
                     'subscribe_type' => $validated['subscribe_type'],
+                    'next_delivery_date' => $nextDeliveryDate,
                 ]);
 
                 foreach ($cart->cartItems as $cartItem) {
@@ -331,10 +341,15 @@ class OrderController extends Controller
                     'delivery_type' => $validated['delivery_type'],
                 ]);
 
+                $notificationMessage = "Your order ". $order->id ." has been placed and payment is pending";
+                if ($discountAmount > 0) {
+                    $notificationMessage .= ". You saved $" . number_format($discountAmount, 2) . " with your " . $validated['subscribe_type'] . " subscription!";
+                }
+
                 $this->createNotification(
                     $user->id,
                     'Order created', 
-                    "Your order ". $order->id ." has been placed and payment is pending"
+                    $notificationMessage
                 );
             });
             $order = Order::where('user_id', Auth::user()->id)->orderByDesc('order_date')->orderByDesc('id')->first();
@@ -518,7 +533,52 @@ class OrderController extends Controller
                     }
 
                     $date = ($order->subscribe_type === 'weekly') ? now()->addWeek() : now()->addMonth();
+                    $nextDeliveryDate = Order::calculateNextDeliveryDate($order->subscribe_type);
+                    // Calculate subscription discount for the renewal
+                    $subtotal = 0;
+                    foreach ($order->orderItems as $orderItem) {
+                        if ($orderItem->medicine) {
+                            $subtotal += $orderItem->quantity * $orderItem->medicine->price;
+                        }
+                    }
+                    $discountRate = Order::getSubscriptionDiscountRate($order->subscribe_type);
+                    $discountAmount = round($subtotal * $discountRate, 2);
+                    $totalAmount = $subtotal - $discountAmount;
 
+                    // Add delivery surcharge if applicable
+                    if ($order->delivery && $order->delivery->delivery_type === 'rapid') {
+                        $totalAmount += 10;
+                    } elseif ($order->delivery && $order->delivery->delivery_type === 'emergency') {
+                        $totalAmount += 20;
+                    }
+
+                    $newOrder = Order::create([
+                        'user_id' => $order->user_id,
+                        'total_amount' => $totalAmount,
+                        'discount_amount' => $discountAmount,
+                        'order_date' => $date,
+                        'order_status' => 'pending',
+                        'payment_status' => 'paid',
+                        'subscribe_type' => $order->subscribe_type,
+                        'next_delivery_date' => $nextDeliveryDate,
+                        'is_subscription_renewal' => true,
+                        'parent_order_id' => $order->id,
+                    ]);
+
+                    foreach ($order->orderItems as $orderItem) {
+                        OrderItem::create([
+                            'order_id' => $newOrder->id,
+                            'medicine_id' => $orderItem->medicine_id,
+                            'quantity' => $orderItem->quantity,
+                        ]);
+
+                        // Reserve stock for the renewal order
+                        $medicine = $orderItem->medicine;
+                        $medicine->stock -= $orderItem->quantity;
+                        $medicine->save();
+                    }
+
+                    //NEED TO CHECK THIS
                     $newOrder = $order->replicate([
                         'order_date',
                         'order_status',
@@ -534,6 +594,7 @@ class OrderController extends Controller
                         $newOrderItem->order_id = $newOrder->id;
                         $newOrderItem->save();
                     }
+                    //END CHECK
 
                     foreach ($order->prescriptions as $prescription) {
                         $newPrescription = $prescription->replicate();
@@ -547,11 +608,21 @@ class OrderController extends Controller
                         'delivery_type' => $order->delivery->delivery_type,
                     ]);
 
+
+                    // Auto-billing: create payment record automatically
+                    Payment::create([
+                        'user_id' => $order->user_id,
+                        'order_id' => $newOrder->id,
+                        'payment_date' => now(),
+                        'payment_type' => $order->payment && $order->payment->payment_type ? $order->payment->payment_type : 'card',
+                    ]);
+
+                    $savings = $discountAmount > 0 ? " You saved $" . number_format($discountAmount, 2) . " with your subscription discount!" : '';
                     $this->createNotification(
                     $order->user_id,
                     'Order renewed and placed at ' . $newOrder->order_date, 
                     "Your new order ". $order->id ." has been renewed and payment " . $order->payment_status
-                    );
+                    );   
                 });
             }
 
@@ -653,4 +724,41 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+
+    /**
+     * Get active subscriptions for the current user.
+     * Returns orders where subscribe_type is weekly or monthly and order is not canceled.
+     */
+    public function getSubscriptions()
+    {
+        try {
+            $query = Order::with(['delivery', 'orderItems.medicine' => function ($q) {
+                    $q->select('id', 'name', 'price', 'image_url');
+                }, 'renewalOrders' => function ($q) {
+                    $q->select('id', 'parent_order_id', 'order_date', 'order_status', 'total_amount')
+                      ->orderByDesc('order_date');
+                }])
+                ->whereIn('subscribe_type', ['weekly', 'monthly']);
+
+            if (!Auth::user()->isAdmin()) {
+                $query->where('user_id', Auth::user()->id);
+            }
+
+            // Only show active subscriptions (not canceled, not renewals — show originals)
+            $subscriptions = $query->where('order_status', '!=', 'canceled')
+                                   ->orderByDesc('order_date')
+                                   ->orderByDesc('id')
+                                   ->paginate(10);
+
+            return response()->json($subscriptions, 200);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                "errors" => $e->getMessage()
+            ], 500);
+        }
+    }
 }
+
+
