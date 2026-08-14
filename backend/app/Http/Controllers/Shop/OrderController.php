@@ -279,6 +279,7 @@ class OrderController extends Controller
                     throw new \Exception('Cart is empty.');
                 }
 
+                $totalAmount = 0;
                 $subtotal = 0;
                 foreach ($cart->cartItems as $cartItem) {
                     if ($cartItem->medicine) {
