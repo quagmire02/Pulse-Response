@@ -4,9 +4,10 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { getUserIdAction, getUserRoleAction } from "@/actions/authActions"
 import { deleteEquipmentAction } from "@/actions/equipmentActions"
-import { rentEquipmentAction } from "@/actions/ledgerActions"
+import { addToCart, EQUIPMENT_PURCHASE, EQUIPMENT_RENTAL } from "@/libs/cart"
 import UpdateEquipmentModal from "@/components/modals/UpdateEquipmentModal"
 import DeleteModal from "@/components/modals/DeleteModal"
+import { isAdminRole, isCustomerRole } from "@/libs/roles"
 import styles from "./EquipmentDetailCard.module.css"
 
 export default function EquipmentDetailCard({ equipment, onUpdateSuccess, onDeleteSuccess }) {
@@ -19,13 +20,17 @@ export default function EquipmentDetailCard({ equipment, onUpdateSuccess, onDele
   const [currentUserRole, setCurrentUserRole] = useState(null)
 
   const [rentalDays, setRentalDays] = useState(1)
-  const [rentalLoading, setRentalLoading] = useState(false)
+  const [rentalStart, setRentalStart] = useState(new Date().toISOString().split("T")[0])
+  const [purchaseQty, setPurchaseQty] = useState(1)
+  const [cartLoading, setCartLoading] = useState("")
   const [rentalSuccess, setRentalSuccess] = useState("")
   const [rentalError, setRentalError] = useState("")
 
   const isOwner = equipment.vendor && currentUserId == equipment.vendor.user_id
-  const isAdmin = currentUserRole === "admin" || currentUserRole === "super_admin"
+  const isAdmin = isAdminRole(currentUserRole)
   const canManage = isOwner || isAdmin
+  // Renting is a customer-only action, mirroring EquipmentRentalController.
+  const canRent = isCustomerRole(currentUserRole) && !isOwner
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -55,32 +60,53 @@ export default function EquipmentDetailCard({ equipment, onUpdateSuccess, onDele
     }
   }
 
-  const handleRentEquipment = async () => {
-    setRentalLoading(true)
+  const rentalEndDate = () => {
+    const end = new Date(rentalStart)
+    end.setDate(end.getDate() + rentalDays - 1)
+    return end.toISOString().split("T")[0]
+  }
+
+  /**
+   * Both renting and buying now go through the cart, so a single checkout can
+   * carry medicines and equipment together.
+   */
+  const handleAddRentalToCart = async () => {
+    setCartLoading("rental")
     setRentalError("")
     setRentalSuccess("")
 
-    const today = new Date()
-    const startDate = today.toISOString().split("T")[0]
-
-    const endDateObj = new Date()
-    endDateObj.setDate(today.getDate() + rentalDays - 1)
-    const endDate = endDateObj.toISOString().split("T")[0]
-
-    const result = await rentEquipmentAction({
+    const result = await addToCart({
+      item_type: EQUIPMENT_RENTAL,
       equipment_id: equipment.id,
-      rental_start: startDate,
-      rental_end: endDate,
+      quantity: 1,
+      rental_start: rentalStart,
+      rental_end: rentalEndDate(),
     })
 
-    setRentalLoading(false)
+    setCartLoading("")
     if (result.error) {
       setRentalError(typeof result.error === "object" ? JSON.stringify(result.error) : result.error)
     } else {
-      setRentalSuccess("Equipment rented successfully! Check your Medical Ledger.")
-      setTimeout(() => {
-        onUpdateSuccess()
-      }, 1500)
+      setRentalSuccess("Rental added to your cart. Complete checkout to confirm the booking.")
+    }
+  }
+
+  const handleAddPurchaseToCart = async () => {
+    setCartLoading("purchase")
+    setRentalError("")
+    setRentalSuccess("")
+
+    const result = await addToCart({
+      item_type: EQUIPMENT_PURCHASE,
+      equipment_id: equipment.id,
+      quantity: purchaseQty,
+    })
+
+    setCartLoading("")
+    if (result.error) {
+      setRentalError(typeof result.error === "object" ? JSON.stringify(result.error) : result.error)
+    } else {
+      setRentalSuccess("Added to your cart.")
     }
   }
 
@@ -103,8 +129,18 @@ export default function EquipmentDetailCard({ equipment, onUpdateSuccess, onDele
             <span className={styles.category}>{equipment.category}</span>
             <h1 className={styles.name}>{equipment.name}</h1>
             <div className={styles.priceRow}>
-              <span className={styles.price}>${equipment.price_per_day}</span>
-              <span className={styles.priceUnit}>/ day</span>
+              {equipment.is_for_rent && (
+                <>
+                  <span className={styles.price}>${equipment.price_per_day}</span>
+                  <span className={styles.priceUnit}>/ day</span>
+                </>
+              )}
+              {equipment.is_for_sale && equipment.sale_price !== null && (
+                <>
+                  <span className={styles.price}>${equipment.sale_price}</span>
+                  <span className={styles.priceUnit}>to buy</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -153,37 +189,84 @@ export default function EquipmentDetailCard({ equipment, onUpdateSuccess, onDele
             </div>
           )}
 
-          {!canManage && equipment.is_available && equipment.quantity > 0 && (
-            <div className={styles.rentalSection}>
-              <h3>Rent this Equipment</h3>
-              <div className={styles.rentalForm}>
-                <div className={styles.rentalInputGroup}>
-                  <label htmlFor="rentalDays">Rental Duration (Days):</label>
-                  <input
-                    type="number"
-                    id="rentalDays"
-                    min="1"
-                    max="90"
-                    value={rentalDays}
-                    onChange={(e) => setRentalDays(parseInt(e.target.value) || 1)}
-                    className={styles.rentalInput}
-                  />
+          {canRent && equipment.is_available && equipment.quantity > 0 && (
+            <>
+              {equipment.is_for_rent && (
+                <div className={styles.rentalSection}>
+                  <h3>Rent this Equipment</h3>
+                  <div className={styles.rentalForm}>
+                    <div className={styles.rentalInputGroup}>
+                      <label htmlFor="rentalStart">Start date:</label>
+                      <input
+                        type="date"
+                        id="rentalStart"
+                        min={new Date().toISOString().split("T")[0]}
+                        value={rentalStart}
+                        onChange={(e) => setRentalStart(e.target.value)}
+                        className={styles.rentalInput}
+                      />
+                    </div>
+                    <div className={styles.rentalInputGroup}>
+                      <label htmlFor="rentalDays">Rental duration (days):</label>
+                      <input
+                        type="number"
+                        id="rentalDays"
+                        min="1"
+                        max="90"
+                        value={rentalDays}
+                        onChange={(e) => setRentalDays(parseInt(e.target.value) || 1)}
+                        className={styles.rentalInput}
+                      />
+                    </div>
+                    <div className={styles.rentalPriceSummary}>
+                      <span>Returns on {rentalEndDate()}. Total: </span>
+                      <strong>${(rentalDays * parseFloat(equipment.price_per_day)).toFixed(2)}</strong>
+                    </div>
+                    <button
+                      onClick={handleAddRentalToCart}
+                      disabled={cartLoading !== ""}
+                      className={styles.rentBtn}
+                    >
+                      {cartLoading === "rental" ? "Adding..." : "Add rental to cart"}
+                    </button>
+                  </div>
                 </div>
-                <div className={styles.rentalPriceSummary}>
-                  <span>Total price: </span>
-                  <strong>${(rentalDays * parseFloat(equipment.price_per_day)).toFixed(2)}</strong>
+              )}
+
+              {equipment.is_for_sale && equipment.sale_price !== null && (
+                <div className={styles.rentalSection}>
+                  <h3>Buy this Equipment</h3>
+                  <div className={styles.rentalForm}>
+                    <div className={styles.rentalInputGroup}>
+                      <label htmlFor="purchaseQty">Quantity:</label>
+                      <input
+                        type="number"
+                        id="purchaseQty"
+                        min="1"
+                        max={equipment.quantity}
+                        value={purchaseQty}
+                        onChange={(e) => setPurchaseQty(parseInt(e.target.value) || 1)}
+                        className={styles.rentalInput}
+                      />
+                    </div>
+                    <div className={styles.rentalPriceSummary}>
+                      <span>Total price: </span>
+                      <strong>${(purchaseQty * parseFloat(equipment.sale_price)).toFixed(2)}</strong>
+                    </div>
+                    <button
+                      onClick={handleAddPurchaseToCart}
+                      disabled={cartLoading !== ""}
+                      className={styles.rentBtn}
+                    >
+                      {cartLoading === "purchase" ? "Adding..." : "Add to cart"}
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={handleRentEquipment}
-                  disabled={rentalLoading}
-                  className={styles.rentBtn}
-                >
-                  {rentalLoading ? "Processing..." : "Confirm Rental Booking"}
-                </button>
-              </div>
+              )}
+
               {rentalSuccess && <p className={styles.rentalSuccess}>{rentalSuccess}</p>}
               {rentalError && <p className={styles.rentalError}>{rentalError}</p>}
-            </div>
+            </>
           )}
 
           {canManage && (

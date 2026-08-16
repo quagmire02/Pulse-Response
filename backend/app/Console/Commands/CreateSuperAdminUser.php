@@ -63,6 +63,7 @@ class CreateSuperAdminUser extends NewCommand
             'is_admin' => true,
             'is_super_admin' => true,
             'is_active' => true,
+            'role' => 'super_admin',
         ];
 
         // Create the User

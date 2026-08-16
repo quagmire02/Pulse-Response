@@ -1,10 +1,10 @@
 "use client"
 import { useFormStatus } from "react-dom"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { logoutAction } from "@/actions/authActions"
 import styles from "./buttons.module.css"
-import { getCartItemsAction, updateCartItemsAction } from "@/actions/cartActions"
-import { getUserIdAction } from "@/actions/authActions"
+import { addToCart, MEDICINE } from "@/libs/cart"
 
 export function LoginButton() {
   const { pending } = useFormStatus()
@@ -62,6 +62,18 @@ export function UpdateButton() {
 }
 
 
+/**
+ * Adds one unit of a medicine to the signed-in shopper's cart.
+ * Shared by AddToCartButton and OrderNowButton.
+ */
+async function addMedicineToCart(medicineId) {
+  return addToCart({
+    item_type: MEDICINE,
+    medicine_id: medicineId,
+    quantity: 1,
+  })
+}
+
 export function AddToCartButton({ medicineId, isAvailable, disabled }) {
   const [isLoading, setIsLoading] = useState(false)
   const [isAdded, setIsAdded] = useState(false)
@@ -74,47 +86,10 @@ export function AddToCartButton({ medicineId, isAvailable, disabled }) {
     setIsLoading(true)
 
     try {
-      const userId = await getUserIdAction()
-      if (!userId) {
-        console.error("User not logged in")
+      const result = await addMedicineToCart(medicineId)
+      if (result.error) {
+        console.error("Failed to add to cart:", result.error)
         return
-      }
-
-      const cartResult = await getCartItemsAction(userId)
-      let cartId = cartResult['data']['cart_id']
-      let existingItems = cartResult['data']['cart_items']
-
-      if (cartResult.data && Array.isArray(cartResult.data)) {
-        existingItems = cartResult.data
-        if (existingItems.length > 0) {
-          cartId = existingItems[0].cart_id
-        }
-      }
-
-      const existingItemIndex = existingItems.findIndex((item) => item.medicine_id === medicineId)
-
-      let updatedItems = []
-      if (existingItemIndex >= 0) {
-        updatedItems = existingItems.map((item) => ({
-          medicine_id: item.medicine_id,
-          quantity: item.medicine_id === medicineId ? item.quantity + 1 : item.quantity,
-        }))
-      } else {
-        updatedItems = [
-          ...existingItems.map((item) => ({
-            medicine_id: item.medicine_id,
-            quantity: item.quantity,
-          })),
-          { medicine_id: medicineId, quantity: 1 },
-        ]
-      }
-
-      if (cartId) {
-        const updateResult = await updateCartItemsAction(cartId, updatedItems)
-        if (updateResult.error) {
-          console.error("Failed to update cart:", updateResult.error)
-          return
-        }
       }
 
       setIsAdded(true)
@@ -149,6 +124,79 @@ export function AddToCartButton({ medicineId, isAvailable, disabled }) {
       aria-label={`Add ${medicineId} to cart`}
     >
       {getButtonText()}
+    </button>
+  )
+}
+
+
+export function OrderNowButton({ medicineId, isAvailable, disabled }) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const router = useRouter()
+
+  const handleOrderNow = async (e) => {
+    e.stopPropagation()
+
+    if (disabled || !isAvailable || isLoading) return
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const result = await addMedicineToCart(medicineId)
+      if (result.error) {
+        setError(typeof result.error === "object" ? "Failed to start the order." : result.error)
+        return
+      }
+
+      router.push("/checkout")
+    } catch (err) {
+      setError("Failed to start the order.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  let className = styles.OrderNowButton
+  if (disabled || !isAvailable) className += ` ${styles.OrderNowButtondisabled}`
+
+  return (
+    <div className={styles.OrderNowWrapper}>
+      <button
+        onClick={handleOrderNow}
+        disabled={disabled || !isAvailable || isLoading}
+        className={className}
+        aria-label="Order this medicine now"
+      >
+        {isLoading ? "Starting order..." : isAvailable ? "Order Now" : "Out of Stock"}
+      </button>
+      {error && <span className={styles.OrderNowError}>{error}</span>}
+    </div>
+  )
+}
+
+
+export function RentEquipmentButton({ equipmentId, isAvailable, disabled, label = "Rent or Buy" }) {
+  const router = useRouter()
+
+  let className = styles.RentEquipmentButton
+  if (disabled || !isAvailable) className += ` ${styles.RentEquipmentButtondisabled}`
+
+  const handleClick = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (disabled || !isAvailable) return
+    router.push(`/equipment/${equipmentId}`)
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={disabled || !isAvailable}
+      className={className}
+      aria-label="View equipment rental and purchase options"
+    >
+      {isAvailable ? label : "Unavailable"}
     </button>
   )
 }

@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { getMedicineAction, getMedicinesAction } from "@/actions/medicineActions"
+import { getMedicineAction, getMedicineAlternativesAction } from "@/actions/medicineActions"
+import { getUserRoleAction } from "@/actions/authActions"
+import { isCustomerRole } from "@/libs/roles"
 import MedicineDetailCard from "@/components/cards/MedicineDetailCard"
 import styles from "./page.module.css"
 
@@ -12,12 +14,17 @@ export default function MedicineDetailPage() {
   const [medicine, setMedicine] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [canOrder, setCanOrder] = useState(false)
   const [alternatives, setAlternatives] = useState([])
+  const [alternativeGenerics, setAlternativeGenerics] = useState([])
   const [alternativesLoading, setAlternativesLoading] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const role = await getUserRoleAction()
+        setCanOrder(isCustomerRole(role))
+
         const medicineResponse = await getMedicineAction(params.id)
 
         if (medicineResponse.error) {
@@ -26,19 +33,20 @@ export default function MedicineDetailPage() {
           const medData = medicineResponse.data
           setMedicine(medData)
 
-          if (medData.stock === 0 && medData.categories && medData.categories.length > 0) {
+          // Out of stock? Recommend other brands of the same chemical.
+          if (medData.stock === 0) {
             setAlternativesLoading(true)
             try {
-              const categoryName = medData.categories[0].name
-              const alternativesResponse = await getMedicinesAction({
-                category: categoryName,
-                is_available: "true",
+              const alternativesResponse = await getMedicineAlternativesAction({
+                medicineId: medData.id,
               })
               if (!alternativesResponse.error) {
-                const filtered = (alternativesResponse.data || []).filter(
-                  (item) => item.id !== medData.id
+                setAlternatives(alternativesResponse.data || [])
+                setAlternativeGenerics(
+                  alternativesResponse.matchedBy === "generic_name"
+                    ? alternativesResponse.genericNames
+                    : []
                 )
-                setAlternatives(filtered)
               }
             } catch (err) {
               console.error("Failed to load alternatives:", err)
@@ -91,12 +99,14 @@ export default function MedicineDetailPage() {
       </div>
 
       <h1 className={styles.title}> Details</h1>
-      <MedicineDetailCard medicine={medicine} isAdmin={false} />
+      <MedicineDetailCard medicine={medicine} isAdmin={false} canOrder={canOrder} />
 
       {medicine.stock === 0 && (
         <div className={styles.alternativesSection}>
           <h3 className={styles.alternativesTitle}>
-            This item is currently out of stock. Clear Alternative Options:
+            {alternativeGenerics.length > 0
+              ? `Out of stock. Other ${alternativeGenerics.join(", ")} options:`
+              : "This item is currently out of stock. Clear Alternative Options:"}
           </h3>
           {alternativesLoading ? (
             <p className={styles.alternativesLoading}>Loading alternative options...</p>
@@ -120,6 +130,7 @@ export default function MedicineDetailPage() {
                   <div className={styles.altInfo}>
                     <h4 className={styles.altName}>{alt.name}</h4>
                     <p className={styles.altBrand}>{alt.brand}</p>
+                    {alt.generic_name && <p className={styles.altGeneric}>{alt.generic_name}</p>}
                     <p className={styles.altPrice}>${alt.price}</p>
                     <span className={styles.altAvailable}>In Stock</span>
                   </div>
@@ -128,7 +139,7 @@ export default function MedicineDetailPage() {
             </div>
           ) : (
             <p className={styles.noAlternatives}>
-              No in-stock alternatives found in the same category.
+              No in-stock alternatives found with the same chemical name or category.
             </p>
           )}
         </div>

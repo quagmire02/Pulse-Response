@@ -80,10 +80,33 @@
   color: #222;
 }
 
+.suggestionItemActive {
+  background: #eef6fd;
+}
+
 .suggestionGeneric {
   font-size: 0.85rem;
   color: #666;
   margin-top: 2px;
+}
+
+.suggestionOutOfStock {
+  font-size: 0.75rem;
+  color: #c33;
+  margin-top: 2px;
+}
+
+.alternativesSection {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.alternativesTitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #0b79d4;
+  margin-bottom: 16px;
 }
 
 

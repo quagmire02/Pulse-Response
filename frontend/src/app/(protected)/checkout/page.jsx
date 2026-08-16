@@ -88,11 +88,14 @@ function PaymentForm({ onCardSubmit, loading }) {
   );
 }
 
-function FormContent({ cartItems, calculateTotal, success, error, subscribeType, setSubscribeType }) {
+function FormContent({ cartItems, cartTotals, calculateTotal, success, error, subscribeType, setSubscribeType }) {
   const { pending } = useFormStatus();
   const [prescriptionImages, setPrescriptionImages] = useState([{ id: Date.now(), file: null }]);
 
   const [deliveryType, setDeliveryType] = useState("basic");
+
+  const hasEquipment = cartItems.some((item) => item.item_type !== "medicine");
+  const hasMedicines = cartItems.some((item) => item.item_type === "medicine");
 
   const deliveryPrices = {
     basic: 10.00,
@@ -125,12 +128,12 @@ function FormContent({ cartItems, calculateTotal, success, error, subscribeType,
     setDeliveryType(e.target.value);
   };
 
-  const subtotal = cartItems.reduce((total, item) => {
-    return total + Number.parseFloat(item.medicine.price) * item.quantity;
-  }, 0);
+  const subtotal = cartItems.reduce((total, item) => total + Number(item.line_total ?? 0), 0);
+  const medicineSubtotal = Number(cartTotals?.medicines ?? 0);
 
+  // The subscription discount applies to medicines only; equipment is one-off.
   const discountRate = subscribeType === "weekly" ? 0.05 : subscribeType === "monthly" ? 0.10 : 0;
-  const discountAmount = subtotal * discountRate;
+  const discountAmount = medicineSubtotal * discountRate;
   const deliveryCharge = deliveryPrices[deliveryType];
 
   const getNextDeliveryDateString = () => {
@@ -152,15 +155,23 @@ function FormContent({ cartItems, calculateTotal, success, error, subscribeType,
       <div className={styles.orderSummary}>
         <h2 className={styles.sectionTitle}>Order Summary</h2>
         <div className={styles.items}>
-          {cartItems.map((item) => (
-            <div key={item.id} className={styles.item}>
-              <span className={styles.itemName}>{item.medicine.name}</span>
-              <span className={styles.itemQuantity}>x{item.quantity}</span>
-              <span className={styles.itemPrice}>
-                ${(Number.parseFloat(item.medicine.price) * item.quantity).toFixed(2)}
-              </span>
-            </div>
-          ))}
+          {cartItems.map((item) => {
+            const product = item.item_type === "medicine" ? item.medicine : item.equipment;
+            const suffix =
+              item.item_type === "equipment_rental"
+                ? ` (rental ${item.rental_start} to ${item.rental_end})`
+                : item.item_type === "equipment_purchase"
+                ? " (purchase)"
+                : "";
+
+            return (
+              <div key={item.id} className={styles.item}>
+                <span className={styles.itemName}>{(product?.name || "Item") + suffix}</span>
+                <span className={styles.itemQuantity}>x{item.quantity}</span>
+                <span className={styles.itemPrice}>${Number(item.line_total ?? 0).toFixed(2)}</span>
+              </div>
+            );
+          })}
         </div>
         <div className={styles.items}>
           <div className={styles.item}>
@@ -201,7 +212,66 @@ function FormContent({ cartItems, calculateTotal, success, error, subscribeType,
       </div>
       
       <div className={styles.formSection}>
-        <h2 className={styles.sectionTitle}>Delivery & Subscription Details</h2>
+        <h2 className={styles.sectionTitle}>Delivery &amp; Handover Details</h2>
+        {hasEquipment && (
+          <p className={styles.helpText}>
+            Your vendor uses this address and phone number to arrange the equipment handover.
+            They will confirm a time and place, which you can track from the order page.
+          </p>
+        )}
+
+        <div className={styles.formGroup}>
+          <label htmlFor="delivery_address" className={styles.label}>Delivery / Handover Address *</label>
+          <input
+            type="text"
+            id="delivery_address"
+            name="delivery_address"
+            className={styles.input}
+            placeholder="House, road, area, city"
+            required
+            disabled={pending}
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label htmlFor="contact_phone" className={styles.label}>Contact Phone *</label>
+          <input
+            type="text"
+            id="contact_phone"
+            name="contact_phone"
+            className={styles.input}
+            placeholder="Number the courier or vendor can reach you on"
+            required
+            disabled={pending}
+          />
+        </div>
+
+        {hasEquipment && (
+          <div className={styles.formGroup}>
+            <label htmlFor="preferred_handover_date" className={styles.label}>Preferred Handover Date</label>
+            <input
+              type="date"
+              id="preferred_handover_date"
+              name="preferred_handover_date"
+              className={styles.input}
+              min={new Date().toISOString().split("T")[0]}
+              disabled={pending}
+            />
+          </div>
+        )}
+
+        <div className={styles.formGroup}>
+          <label htmlFor="delivery_notes" className={styles.label}>Notes for the courier or vendor</label>
+          <textarea
+            id="delivery_notes"
+            name="delivery_notes"
+            className={styles.input}
+            rows={2}
+            placeholder="Landmark, gate code, best time to call"
+            disabled={pending}
+          />
+        </div>
+
         <div className={styles.formGroup}>
           <label htmlFor="delivery_type" className={styles.label}>Delivery Type</label>
           <select 
@@ -233,6 +303,7 @@ function FormContent({ cartItems, calculateTotal, success, error, subscribeType,
             <option value="monthly">Monthly (Save 10%)</option>
           </select>
         </div>
+        {hasMedicines && (
         <div className={styles.formGroup}>
           <label className={styles.label}>Prescription Images</label>
           {prescriptionImages.map((input, index) => (
@@ -259,6 +330,7 @@ function FormContent({ cartItems, calculateTotal, success, error, subscribeType,
             </div>
           ))}
         </div>
+        )}
       </div>
     </>
   );
@@ -266,6 +338,7 @@ function FormContent({ cartItems, calculateTotal, success, error, subscribeType,
 
 export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState([]);
+  const [cartTotals, setCartTotals] = useState(null);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -293,6 +366,7 @@ export default function CheckoutPage() {
         setError(result.error);
       } else {
         setCartItems(result.data.cart_items || []);
+        setCartTotals(result.data.totals || null);
       }
     } catch (err) {
       setError("Failed to load cart items");
@@ -302,13 +376,12 @@ export default function CheckoutPage() {
   };
 
   const calculateTotal = (delivery_type = "basic", sub_type = "none") => {
-    let subtotal = cartItems.reduce((total, item) => {
-      const price = Number.parseFloat(item.medicine.price);
-      return total + price * item.quantity;
-    }, 0);
+    const subtotal = cartItems.reduce((total, item) => total + Number(item.line_total ?? 0), 0);
+    const medicineSubtotal = Number(cartTotals?.medicines ?? 0);
 
+    // Mirrors the backend: the subscription discount only touches medicines.
     const discountRate = sub_type === "weekly" ? 0.05 : sub_type === "monthly" ? 0.10 : 0;
-    const discountAmount = subtotal * discountRate;
+    const discountAmount = medicineSubtotal * discountRate;
     let amount = subtotal - discountAmount;
 
     if (delivery_type === "rapid") {
@@ -326,6 +399,8 @@ export default function CheckoutPage() {
     
     const subscribeType = formData.get("subscribe_type");
     const deliveryType = formData.get("delivery_type");
+    const deliveryAddress = formData.get("delivery_address");
+    const contactPhone = formData.get("contact_phone");
     const prescriptionImages = formData.getAll("prescription_images[]");
 
     if (!subscribeType) {
@@ -335,6 +410,11 @@ export default function CheckoutPage() {
     }
     if (!deliveryType) {
       setError("Please select a delivery system.");
+      setLoading(false);
+      return;
+    }
+    if (!deliveryAddress || !contactPhone) {
+      setError("Please provide a delivery address and contact phone number.");
       setLoading(false);
       return;
     }
@@ -352,7 +432,13 @@ export default function CheckoutPage() {
     try {
       const orderResult = await createOrderAction(formData);
       if (orderResult.error) {
-        setError("Presciption Image is larger than 2MB or not an image file or dimensions are larger than 1000x1000");
+        // Surface the real reason instead of always blaming the prescription upload.
+        const reason =
+          typeof orderResult.error === "string"
+            ? orderResult.error
+            : Object.values(orderResult.error || {}).flat().join(" ");
+
+        setError(reason || "Failed to place the order. Please review the form and try again.");
         setLoading(false);
         return;
       }
@@ -417,6 +503,7 @@ export default function CheckoutPage() {
       <form action={handleOrder} id="checkout-form">
         <FormContent
           cartItems={cartItems}
+          cartTotals={cartTotals}
           calculateTotal={calculateTotal}
           success={success}
           error={error}

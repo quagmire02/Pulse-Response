@@ -2,6 +2,7 @@
 import {
   getEquipmentList,
   getEquipmentItem,
+  getEquipmentSuggestions,
   getVendorEquipment,
   createEquipment,
   updateEquipment,
@@ -43,6 +44,20 @@ export const getEquipmentItemAction = async (id) => {
     return { data: response };
   } catch (error) {
     return { error: error.message || "Failed to fetch equipment." };
+  }
+};
+
+export const getEquipmentSuggestionsAction = async (term, limit = 8) => {
+  if (!term || term.trim() === "") {
+    return { data: [] };
+  }
+
+  try {
+    const response = await getEquipmentSuggestions({ q: term.trim(), limit });
+    if (response.error) return { error: response.error };
+    return { data: response.data || [] };
+  } catch (error) {
+    return { error: error.message || "Failed to fetch equipment suggestions." };
   }
 };
 

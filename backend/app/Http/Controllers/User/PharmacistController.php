@@ -186,7 +186,7 @@ class PharmacistController extends Controller
                 $userData['address'] = $validated['address'];
             }
 
-            $user = User::create($validated);
+            $user = User::create($validated + ['role' => 'pharmacist']);
 
             Cart::create([
                 'user_id' => $user->id,

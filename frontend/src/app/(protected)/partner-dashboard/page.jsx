@@ -8,23 +8,30 @@ import { getAmbulanceCompanyAction } from "@/actions/ambulanceActions"
 import {
   getVendorDashboardAction,
   getAmbulanceDashboardAction,
+  getCustomerDashboardAction,
 } from "@/actions/partnerDashboardActions"
+import { isAdminRole } from "@/libs/roles"
+import { ShareBars, DonutChart, TrendBars, StatTile } from "@/components/charts/Charts"
+import FulfillmentQueue from "@/components/cards/FulfillmentQueue"
 import styles from "./page.module.css"
 
-export default function PartnerDashboard() {
+const money = (value) => `$${Number(value ?? 0).toFixed(2)}`
+
+export default function AnalyticsDashboard() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [authorized, setAuthorized] = useState(false)
   const [userRole, setUserRole] = useState(null)
-  
-  // Dashboard modes: 'vendor' or 'ambulance'
-  const [activeDashboard, setActiveDashboard] = useState(null)
-  const [vendorData, setVendorData] = useState(null)
-  const [ambulanceData, setAmbulanceData] = useState(null)
   const [errorMsg, setErrorMsg] = useState(null)
 
+  // Which specialised view is on screen: vendor, ambulance or customer.
+  const [activeDashboard, setActiveDashboard] = useState(null)
+  const [availableViews, setAvailableViews] = useState([])
+  const [vendorData, setVendorData] = useState(null)
+  const [ambulanceData, setAmbulanceData] = useState(null)
+  const [customerData, setCustomerData] = useState(null)
+
   useEffect(() => {
-    const checkAccessAndFetch = async () => {
+    const load = async () => {
       try {
         const id = await getUserIdAction()
         const role = await getUserRoleAction()
@@ -36,78 +43,84 @@ export default function PartnerDashboard() {
           return
         }
 
-        const isAdminUser = role === "admin" || role === "super_admin"
-        
-        // Check vendor profile
+        const isAdminUser = isAdminRole(role)
         const vendorCheck = await getVendorAction(id)
         const isVendor = !vendorCheck.error
-
-        // Check ambulance profile
         const ambulanceCheck = await getAmbulanceCompanyAction(id)
         const isAmbulance = !ambulanceCheck.error
 
-        if (!isVendor && !isAmbulance && !isAdminUser) {
-          setErrorMsg("Access denied. This dashboard is only available to platform partners and administrators.")
-          setLoading(false)
-          return
-        }
+        const views = []
+        if (isVendor || isAdminUser) views.push({ value: "vendor", label: "Equipment supplier" })
+        if (isAmbulance || isAdminUser) views.push({ value: "ambulance", label: "Ambulance operations" })
+        if (!isVendor && !isAmbulance) views.push({ value: "customer", label: "My spending" })
+        if (isAdminUser) views.push({ value: "customer", label: "Customer spending" })
 
-        setAuthorized(true)
+        // De-duplicate in case an admin also holds a partner profile.
+        const uniqueViews = views.filter(
+          (view, index) => views.findIndex((other) => other.value === view.value) === index
+        )
+        setAvailableViews(uniqueViews)
 
-        // Set default active dashboard
-        let defaultDash = null
-        if (isVendor) {
-          defaultDash = "vendor"
-        } else if (isAmbulance) {
-          defaultDash = "ambulance"
-        } else if (isAdminUser) {
-          defaultDash = "vendor" // Admin default
-        }
-        setActiveDashboard(defaultDash)
-
-        // Fetch corresponding metrics
-        if (defaultDash === "vendor" || isAdminUser) {
-          const vResult = await getVendorDashboardAction()
-          if (!vResult.error) {
-            setVendorData(vResult.data)
-          }
-        }
-        if (defaultDash === "ambulance" || isAdminUser) {
-          const aResult = await getAmbulanceDashboardAction()
-          if (!aResult.error) {
-            setAmbulanceData(aResult.data)
-          }
-        }
+        const first = uniqueViews[0]?.value || null
+        setActiveDashboard(first)
+        await loadView(first)
 
         setLoading(false)
       } catch (err) {
         console.error(err)
-        setErrorMsg("Failed to load dashboard metrics.")
+        setErrorMsg("Failed to load analytics.")
         setLoading(false)
       }
     }
 
-    checkAccessAndFetch()
+    load()
   }, [])
 
-  const handleDashboardChange = async (e) => {
+  const loadView = async (view) => {
+    if (view === "vendor") {
+      const result = await getVendorDashboardAction()
+      if (result.error) {
+        setErrorMsg(typeof result.error === "string" ? result.error : "Failed to load supplier analytics.")
+      } else {
+        setVendorData(result.data)
+      }
+    } else if (view === "ambulance") {
+      const result = await getAmbulanceDashboardAction()
+      if (result.error) {
+        setErrorMsg(typeof result.error === "string" ? result.error : "Failed to load fleet analytics.")
+      } else {
+        setAmbulanceData(result.data)
+      }
+    } else if (view === "customer") {
+      const result = await getCustomerDashboardAction()
+      if (result.error) {
+        setErrorMsg(typeof result.error === "string" ? result.error : "Failed to load spending analytics.")
+      } else {
+        setCustomerData(result.data)
+      }
+    }
+  }
+
+  const handleViewChange = async (e) => {
     const value = e.target.value
     setActiveDashboard(value)
-    if (value === "vendor" && !vendorData) {
+    setErrorMsg(null)
+
+    const alreadyLoaded =
+      (value === "vendor" && vendorData) ||
+      (value === "ambulance" && ambulanceData) ||
+      (value === "customer" && customerData)
+
+    if (!alreadyLoaded) {
       setLoading(true)
-      const vResult = await getVendorDashboardAction()
-      if (!vResult.error) {
-        setVendorData(vResult.data)
-      }
-      setLoading(false)
-    } else if (value === "ambulance" && !ambulanceData) {
-      setLoading(true)
-      const aResult = await getAmbulanceDashboardAction()
-      if (!aResult.error) {
-        setAmbulanceData(aResult.data)
-      }
+      await loadView(value)
       setLoading(false)
     }
+  }
+
+  const refreshVendor = async () => {
+    const result = await getVendorDashboardAction()
+    if (!result.error) setVendorData(result.data)
   }
 
   if (loading) {
@@ -115,17 +128,17 @@ export default function PartnerDashboard() {
       <div className={styles.container}>
         <div className={styles.loading}>
           <div className={styles.spinner}></div>
-          <p>Analyzing financial operations...</p>
+          <p>Loading analytics</p>
         </div>
       </div>
     )
   }
 
-  if (!authorized || errorMsg) {
+  if (errorMsg && !vendorData && !ambulanceData && !customerData) {
     return (
       <div className={styles.container}>
         <div className={styles.errorState}>
-          <p className={styles.errorMessage}>⚠️ {errorMsg || "Unauthorized Access"}</p>
+          <p className={styles.errorMessage}>{errorMsg}</p>
           <button onClick={() => router.push("/")} className={styles.backButton}>
             Return to Homepage
           </button>
@@ -134,269 +147,344 @@ export default function PartnerDashboard() {
     )
   }
 
-  const isAdminOrSuper = userRole === "admin" || userRole === "super_admin"
-
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleArea}>
-          <h1 className={styles.title}>Partner Analytics</h1>
+          <h1 className={styles.title}>Analytics Dashboard</h1>
           <p className={styles.subtitle}>Real-time business performance and financial monitoring</p>
         </div>
-        
+
         <div className={styles.controls}>
-          {isAdminOrSuper && (
-            <select
-              className={styles.selector}
-              value={activeDashboard}
-              onChange={handleDashboardChange}
-            >
-              <option value="vendor">Equipment Suppliers Dashboard</option>
-              <option value="ambulance">Ambulance Companies Dashboard</option>
+          {availableViews.length > 1 && (
+            <select className={styles.selector} value={activeDashboard} onChange={handleViewChange}>
+              {availableViews.map((view) => (
+                <option key={view.value} value={view.value}>
+                  {view.label}
+                </option>
+              ))}
             </select>
           )}
           <button onClick={() => router.back()} className={styles.backButton}>
-            ← Back
+            Back
           </button>
         </div>
       </div>
 
+      {errorMsg && <div className={styles.inlineError}>{errorMsg}</div>}
+
       {activeDashboard === "vendor" && vendorData && (
-        <div>
-          {/* Vendor profile details */}
-          <div className={styles.partnerInfoCard}>
-            <div className={styles.infoDetails}>
-              <h2>🏪 {vendorData.vendor_info.company_name}</h2>
-              <p>{vendorData.vendor_info.description || "Medical equipment supply partner"}</p>
-            </div>
-            <div className={styles.infoMeta}>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>License Number</span>
-                <span className={styles.metaValue}>{vendorData.vendor_info.license_num}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <span className={styles.statIcon}>💰</span>
-              <span className={styles.statLabel}>Projected Revenue</span>
-              <span className={styles.statValue}>${parseFloat(vendorData.upcoming_projections).toFixed(2)}</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statIcon}>⭐</span>
-              <span className={styles.statLabel}>Average Rating</span>
-              <span className={styles.statValue}>{vendorData.average_rating} / 5.0</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statIcon}>📦</span>
-              <span className={styles.statLabel}>Total Reviews</span>
-              <span className={styles.statValue}>{vendorData.reviews_count}</span>
-            </div>
-          </div>
-
-          {/* Live Asset Usage */}
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>📋 Live Asset Usage</h3>
-            <div className={styles.tableWrapper}>
-              {vendorData.asset_usage.length === 0 ? (
-                <p className={styles.noData}>No assets found.</p>
-              ) : (
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Equipment Name</th>
-                      <th>Category</th>
-                      <th>Total Quantity</th>
-                      <th>Rented Units</th>
-                      <th>Available Units</th>
-                      <th>Utilization Rate</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {vendorData.asset_usage.map((asset) => {
-                      const utilRate = asset.total_quantity > 0 
-                        ? Math.round((asset.rented_quantity / asset.total_quantity) * 100)
-                        : 0;
-                      return (
-                        <tr key={asset.id}>
-                          <td>{asset.name}</td>
-                          <td><span className={`${styles.badge} ${styles.available}`}>{asset.category}</span></td>
-                          <td>{asset.total_quantity}</td>
-                          <td>{asset.rented_quantity}</td>
-                          <td>{asset.available_quantity}</td>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                              <span>{utilRate}%</span>
-                              <div className={styles.progressBarContainer} style={{ width: "80px", marginTop: 0 }}>
-                                <div className={styles.progressBar} style={{ width: `${utilRate}%` }}></div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-
-          {/* Active Rentals */}
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>🔑 Active Rentals</h3>
-            <div className={styles.tableWrapper}>
-              {vendorData.active_rentals.length === 0 ? (
-                <p className={styles.noData}>No active rentals currently.</p>
-              ) : (
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Equipment</th>
-                      <th>Customer Name</th>
-                      <th>Customer Email</th>
-                      <th>Rental Start</th>
-                      <th>Rental End</th>
-                      <th>Total Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {vendorData.active_rentals.map((rental) => (
-                      <tr key={rental.id}>
-                        <td>{rental.equipment_name}</td>
-                        <td>{rental.customer_name}</td>
-                        <td>{rental.customer_email}</td>
-                        <td>{rental.rental_start}</td>
-                        <td>{rental.rental_end}</td>
-                        <td>${parseFloat(rental.total_price).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </div>
+        <VendorView data={vendorData} onRefresh={refreshVendor} />
       )}
 
-      {activeDashboard === "ambulance" && ambulanceData && (
-        <div>
-          {/* Ambulance profile details */}
-          <div className={styles.partnerInfoCard}>
-            <div className={styles.infoDetails}>
-              <h2>🚑 {ambulanceData.company_info.company_name}</h2>
-              <p>{ambulanceData.company_info.description || "Emergency ambulance dispatch partner"}</p>
-            </div>
-            <div className={styles.infoMeta}>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>License Number</span>
-                <span className={styles.metaValue}>{ambulanceData.company_info.license_num}</span>
-              </div>
-            </div>
-          </div>
+      {activeDashboard === "ambulance" && ambulanceData && <AmbulanceView data={ambulanceData} />}
 
-          {/* Stats Grid */}
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <span className={styles.statIcon}>🏁</span>
-              <span className={styles.statLabel}>Completed Trips</span>
-              <span className={styles.statValue}>{ambulanceData.completed_trips_count}</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statIcon}>⏱️</span>
-              <span className={styles.statLabel}>Avg Response Delay</span>
-              <span className={styles.statValue}>{ambulanceData.average_response_delay} mins</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statIcon}>💰</span>
-              <span className={styles.statLabel}>Total Revenue</span>
-              <span className={styles.statValue}>${parseFloat(ambulanceData.total_revenue).toFixed(2)}</span>
-            </div>
-          </div>
+      {activeDashboard === "customer" && customerData && <CustomerView data={customerData} />}
+    </div>
+  )
+}
 
-          {/* Vehicle Efficiency */}
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>⚡ Individual Vehicle Efficiency</h3>
-            <div className={styles.tableWrapper}>
-              {ambulanceData.vehicle_efficiency.length === 0 ? (
-                <p className={styles.noData}>No vehicles found in fleet.</p>
-              ) : (
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Vehicle Number</th>
-                      <th>Model</th>
-                      <th>Status</th>
-                      <th>Completed Trips</th>
-                      <th>Avg Delay</th>
-                      <th>Total Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ambulanceData.vehicle_efficiency.map((vehicle) => (
-                      <tr key={vehicle.id}>
-                        <td>{vehicle.vehicle_number}</td>
-                        <td>{vehicle.model}</td>
-                        <td>
-                          <span className={`${styles.badge} ${styles[vehicle.status]}`}>
-                            {vehicle.status}
-                          </span>
-                        </td>
-                        <td>{vehicle.trips_count}</td>
-                        <td>{vehicle.average_response_delay} mins</td>
-                        <td>${parseFloat(vehicle.total_revenue).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-
-          {/* Completed Trips */}
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>📜 Completed Trips History</h3>
-            <div className={styles.tableWrapper}>
-              {ambulanceData.completed_trips.length === 0 ? (
-                <p className={styles.noData}>No trip history available.</p>
-              ) : (
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Patient Name</th>
-                      <th>Vehicle Number</th>
-                      <th>Dispatch Time</th>
-                      <th>Arrival Time</th>
-                      <th>Completion Time</th>
-                      <th>Response Delay</th>
-                      <th>Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ambulanceData.completed_trips.map((trip) => {
-                      const dispatchDate = new Date(trip.dispatch_time).toLocaleString()
-                      const arrivalDate = new Date(trip.arrival_time).toLocaleString()
-                      const completionDate = new Date(trip.completion_time).toLocaleString()
-                      return (
-                        <tr key={trip.id}>
-                          <td>{trip.patient_name || "Emergency Patient"}</td>
-                          <td>{trip.vehicle?.vehicle_number || "N/A"}</td>
-                          <td>{dispatchDate}</td>
-                          <td>{arrivalDate}</td>
-                          <td>{completionDate}</td>
-                          <td>{trip.response_delay_minutes} mins</td>
-                          <td>${parseFloat(trip.revenue).toFixed(2)}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
+function VendorView({ data, onRefresh }) {
+  return (
+    <div>
+      <div className={styles.partnerInfoCard}>
+        <div className={styles.infoDetails}>
+          <h2>{data.vendor_info.company_name}</h2>
+          <p>{data.vendor_info.description || "Medical equipment supply partner"}</p>
+        </div>
+        <div className={styles.infoMeta}>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>License Number</span>
+            <span className={styles.metaValue}>{data.vendor_info.license_num}</span>
           </div>
         </div>
-      )}
+      </div>
+
+      <div className={styles.statsGrid}>
+        <StatTile label="Total Revenue" value={money(data.total_revenue)} hint="Sales and rentals combined" />
+        <StatTile label="Sales Revenue" value={money(data.sale_revenue)} />
+        <StatTile label="Rental Revenue" value={money(data.rental_revenue)} />
+        <StatTile
+          label="Projected Rental Income"
+          value={money(data.upcoming_projections)}
+          hint="From currently active rentals"
+        />
+        <StatTile
+          label="Average Rating"
+          value={`${data.average_rating} / 5.0`}
+          hint={`${data.reviews_count} review${data.reviews_count === 1 ? "" : "s"}`}
+        />
+        <StatTile
+          label="Open Handovers"
+          value={data.pending_count}
+          hint="Requests waiting on you"
+        />
+      </div>
+
+      <div className={styles.chartGrid}>
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Revenue Split</h3>
+          <DonutChart data={data.revenue_mix} valuePrefix="$" centerLabel="Revenue" />
+        </div>
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Revenue by Category</h3>
+          <ShareBars data={data.category_mix} valuePrefix="$" emptyMessage="No completed orders yet" />
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Revenue Trend, Last 6 Months</h3>
+        <TrendBars data={data.monthly_revenue} valuePrefix="$" />
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Top Earning Equipment</h3>
+        <ShareBars data={data.top_equipment} valuePrefix="$" emptyMessage="No revenue recorded yet" />
+      </div>
+
+      <FulfillmentQueue requests={data.pending_fulfillments} onUpdated={onRefresh} />
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Live Asset Usage</h3>
+        <div className={styles.tableWrapper}>
+          {data.asset_usage.length === 0 ? (
+            <p className={styles.noData}>No assets found.</p>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Equipment</th>
+                  <th>Category</th>
+                  <th>Listing</th>
+                  <th>Total Units</th>
+                  <th>On Rent</th>
+                  <th>Available</th>
+                  <th>Utilization</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.asset_usage.map((asset) => (
+                  <tr key={asset.id}>
+                    <td>{asset.name}</td>
+                    <td><span className={styles.badge}>{asset.category}</span></td>
+                    <td>
+                      {[asset.is_for_rent ? "Rent" : null, asset.is_for_sale ? "Sale" : null]
+                        .filter(Boolean)
+                        .join(" and ") || "Not listed"}
+                    </td>
+                    <td>{asset.total_quantity}</td>
+                    <td>{asset.rented_quantity}</td>
+                    <td>{asset.available_quantity}</td>
+                    <td>
+                      <div className={styles.inlineBar}>
+                        <span>{asset.utilization}%</span>
+                        <div className={styles.progressBarContainer}>
+                          <div className={styles.progressBar} style={{ width: `${asset.utilization}%` }}></div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Active Rentals</h3>
+        <div className={styles.tableWrapper}>
+          {data.active_rentals.length === 0 ? (
+            <p className={styles.noData}>No active rentals currently.</p>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Equipment</th>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.active_rentals.map((rental) => (
+                  <tr key={rental.id}>
+                    <td>{rental.equipment_name}</td>
+                    <td>{rental.customer_name}</td>
+                    <td>{rental.customer_email}</td>
+                    <td>{rental.rental_start}</td>
+                    <td>{rental.rental_end}</td>
+                    <td>{money(rental.total_price)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AmbulanceView({ data }) {
+  return (
+    <div>
+      <div className={styles.partnerInfoCard}>
+        <div className={styles.infoDetails}>
+          <h2>{data.company_info.company_name}</h2>
+          <p>{data.company_info.description || "Emergency ambulance dispatch partner"}</p>
+        </div>
+        <div className={styles.infoMeta}>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>License Number</span>
+            <span className={styles.metaValue}>{data.company_info.license_num}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.statsGrid}>
+        <StatTile label="Completed Trips" value={data.completed_trips_count} />
+        <StatTile label="Average Response Delay" value={`${data.average_response_delay} min`} />
+        <StatTile label="Total Revenue" value={money(data.total_revenue)} />
+        <StatTile label="Revenue per Trip" value={money(data.average_revenue_per_trip)} />
+      </div>
+
+      <div className={styles.chartGrid}>
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Response Delay Distribution</h3>
+          <ShareBars data={data.delay_distribution} emptyMessage="No trips recorded yet" />
+        </div>
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Fleet Status</h3>
+          <DonutChart data={data.fleet_status} centerLabel="Vehicles" />
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Revenue Trend, Last 6 Months</h3>
+        <TrendBars data={data.monthly_revenue} valuePrefix="$" />
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Revenue Share by Vehicle</h3>
+        <ShareBars data={data.vehicle_revenue_mix} valuePrefix="$" emptyMessage="No revenue recorded yet" />
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Individual Vehicle Efficiency</h3>
+        <div className={styles.tableWrapper}>
+          {data.vehicle_efficiency.length === 0 ? (
+            <p className={styles.noData}>No vehicles found in fleet.</p>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Vehicle</th>
+                  <th>Model</th>
+                  <th>Status</th>
+                  <th>Trips</th>
+                  <th>Avg Delay</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.vehicle_efficiency.map((vehicle) => (
+                  <tr key={vehicle.id}>
+                    <td>{vehicle.vehicle_number}</td>
+                    <td>{vehicle.model}</td>
+                    <td><span className={`${styles.badge} ${styles[vehicle.status] || ""}`}>{vehicle.status}</span></td>
+                    <td>{vehicle.trips_count}</td>
+                    <td>{vehicle.average_response_delay} min</td>
+                    <td>{money(vehicle.total_revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Completed Trips History</h3>
+        <div className={styles.tableWrapper}>
+          {data.completed_trips.length === 0 ? (
+            <p className={styles.noData}>No trip history available.</p>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Vehicle</th>
+                  <th>Dispatch</th>
+                  <th>Arrival</th>
+                  <th>Completion</th>
+                  <th>Delay</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.completed_trips.map((trip) => (
+                  <tr key={trip.id}>
+                    <td>{trip.patient_name || "Emergency Patient"}</td>
+                    <td>{trip.vehicle?.vehicle_number || "N/A"}</td>
+                    <td>{trip.dispatch_time ? new Date(trip.dispatch_time).toLocaleString() : "N/A"}</td>
+                    <td>{trip.arrival_time ? new Date(trip.arrival_time).toLocaleString() : "N/A"}</td>
+                    <td>{trip.completion_time ? new Date(trip.completion_time).toLocaleString() : "N/A"}</td>
+                    <td>{trip.response_delay_minutes} min</td>
+                    <td>{money(trip.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CustomerView({ data }) {
+  return (
+    <div>
+      <div className={styles.statsGrid}>
+        <StatTile label="Total Spend" value={money(data.total_spend)} hint="Excludes cancelled orders" />
+        <StatTile label="Orders Placed" value={data.orders_count} />
+        <StatTile label="Active Rentals" value={data.active_rentals} />
+        <StatTile label="Open Handovers" value={data.open_handovers} hint="Awaiting vendor confirmation" />
+      </div>
+
+      <div className={styles.chartGrid}>
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Where Your Money Goes</h3>
+          <DonutChart data={data.spend_mix} valuePrefix="$" centerLabel="Total Spend" />
+        </div>
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Spend Split</h3>
+          <ShareBars data={data.spend_mix} valuePrefix="$" emptyMessage="No orders placed yet" />
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Monthly Spend, Last 6 Months</h3>
+        <TrendBars data={data.monthly_spend} valuePrefix="$" />
+      </div>
+
+      <div className={styles.chartGrid}>
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Equipment Categories</h3>
+          <ShareBars data={data.category_mix} valuePrefix="$" emptyMessage="No equipment ordered yet" />
+        </div>
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Most Purchased Items</h3>
+          <ShareBars data={data.top_items} valuePrefix="$" emptyMessage="No orders placed yet" />
+        </div>
+      </div>
     </div>
   )
 }

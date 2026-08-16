@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Shop;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Equipment;
+use App\Models\Medicine;
 use App\Http\Requests\Shop\UpdateCartItemRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use App\OpenApi\Annotations as OA;
@@ -70,13 +73,36 @@ class CartItemController extends Controller
         try {
             $cart = Cart::firstOrCreate(['user_id' => $user_id]);
 
-            $cartItems = CartItem::with(['medicine' => function ($query) {
-                $query->select('id', 'name', 'price');
-            }])->where('cart_id', $cart->id)->get();
-            
+            $cartItems = CartItem::with([
+                'medicine' => function ($query) {
+                    $query->select('id', 'name', 'price', 'stock', 'image_url');
+                },
+                'equipment' => function ($query) {
+                    $query->select('id', 'vendor_id', 'name', 'price_per_day', 'sale_price', 'quantity', 'is_available', 'image');
+                },
+                'equipment.vendor:id,user_id,company_name,contact_phone',
+            ])->where('cart_id', $cart->id)->get();
+
+            $totals = [
+                'medicines' => 0.0,
+                'equipment_purchases' => 0.0,
+                'equipment_rentals' => 0.0,
+            ];
+
+            foreach ($cartItems as $item) {
+                $bucket = match ($item->item_type) {
+                    CartItem::TYPE_EQUIPMENT_PURCHASE => 'equipment_purchases',
+                    CartItem::TYPE_EQUIPMENT_RENTAL => 'equipment_rentals',
+                    default => 'medicines',
+                };
+                $totals[$bucket] += $item->line_total;
+            }
+
             return response()->json([
                 'cart_id' => $cart->id,
                 'cart_items' => $cartItems,
+                'totals' => array_map(fn ($value) => round($value, 2), $totals),
+                'subtotal' => round(array_sum($totals), 2),
             ], 200);
         } catch (\Exception $e) {
             Log::error($e->getMessage());
@@ -154,18 +180,80 @@ class CartItemController extends Controller
         }
         
         try {
-            CartItem::where('cart_id', $cartId)->delete();
-
             $newCartItems = [];
+
             foreach ($validated['items'] as $item) {
+                $type = $item['item_type'];
+
+                if ($type === CartItem::TYPE_MEDICINE) {
+                    $medicine = Medicine::find($item['medicine_id']);
+
+                    if (!$medicine) {
+                        return response()->json(['error' => 'Medicine not found.'], 404);
+                    }
+
+                    $newCartItems[] = [
+                        'cart_id' => $cart->id,
+                        'item_type' => $type,
+                        'medicine_id' => $medicine->id,
+                        'equipment_id' => null,
+                        'quantity' => $item['quantity'],
+                        'rental_start' => null,
+                        'rental_end' => null,
+                        'unit_price' => $medicine->price,
+                    ];
+                    continue;
+                }
+
+                $equipment = Equipment::find($item['equipment_id']);
+
+                if (!$equipment) {
+                    return response()->json(['error' => 'Equipment not found.'], 404);
+                }
+
+                if ($type === CartItem::TYPE_EQUIPMENT_PURCHASE) {
+                    if (!$equipment->isPurchasable()) {
+                        return response()->json([
+                            'error' => "{$equipment->name} is not available for purchase.",
+                        ], 422);
+                    }
+
+                    $unitPrice = $equipment->sale_price;
+                } else {
+                    if (!$equipment->isRentable()) {
+                        return response()->json([
+                            'error' => "{$equipment->name} is not available for rent.",
+                        ], 422);
+                    }
+
+                    $unitPrice = $equipment->price_per_day;
+                }
+
+                if ($item['quantity'] > $equipment->quantity) {
+                    return response()->json([
+                        'error' => "Only {$equipment->quantity} unit(s) of {$equipment->name} are available.",
+                    ], 422);
+                }
+
                 $newCartItems[] = [
                     'cart_id' => $cart->id,
-                    'medicine_id' => $item['medicine_id'],
+                    'item_type' => $type,
+                    'medicine_id' => null,
+                    'equipment_id' => $equipment->id,
                     'quantity' => $item['quantity'],
+                    'rental_start' => $type === CartItem::TYPE_EQUIPMENT_RENTAL ? $item['rental_start'] : null,
+                    'rental_end' => $type === CartItem::TYPE_EQUIPMENT_RENTAL ? $item['rental_end'] : null,
+                    'unit_price' => $unitPrice,
                 ];
             }
-            
-            CartItem::insert($newCartItems);
+
+            DB::transaction(function () use ($cartId, $newCartItems) {
+                CartItem::where('cart_id', $cartId)->delete();
+
+                if (!empty($newCartItems)) {
+                    CartItem::insert($newCartItems);
+                }
+            });
 
             return response()->json([
                 'success' => 'Cart updated successfully.',

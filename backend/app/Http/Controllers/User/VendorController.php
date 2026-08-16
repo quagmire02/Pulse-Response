@@ -62,7 +62,7 @@ class VendorController extends Controller
         try {
             $validated = $request->validated();
 
-            $user = User::create($validated);
+            $user = User::create($validated + ['role' => 'vendor']);
 
             // Cart::create(['user_id' => $user->id]);
 

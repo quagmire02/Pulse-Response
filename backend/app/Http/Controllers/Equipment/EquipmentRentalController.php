@@ -16,6 +16,11 @@ class EquipmentRentalController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
+        // Renting is a customer-only action; vendors list equipment rather than book it.
+        if (Auth::user()->resolveRole() !== 'user') {
+            return response()->json(['errors' => 'Only customer accounts can rent equipment.'], 403);
+        }
+
         try {
             $validated = $request->validate([
                 'equipment_id' => 'required|exists:equipment,id',

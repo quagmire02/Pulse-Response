@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import {AddToCartButton} from "@/components/buttons/buttons"
+import {AddToCartButton, OrderNowButton} from "@/components/buttons/buttons"
 import styles from "./MedicineDetailCard.module.css"
 
-export default function MedicineDetailCard({ medicine, onUpdate, onDelete, isAdmin = false }) {
+export default function MedicineDetailCard({ medicine, onUpdate, onDelete, isAdmin = false, canOrder = false }) {
   const [imageError, setImageError] = useState(false)
   const imageUrl = medicine.image_url
     ? `${process.env.NEXT_PUBLIC_BASE_URL}${medicine.image_url}`
@@ -87,20 +87,25 @@ export default function MedicineDetailCard({ medicine, onUpdate, onDelete, isAdm
           )}
         </div>
 
-        <div className={styles.actions}>
-          {isAdmin ? (
-            <>
-              <button onClick={onUpdate} className={styles.updateButton}>
-                Update Medicine
-              </button>
-              <button onClick={onDelete} className={styles.deleteButton}>
-                Delete Medicine
-              </button>
-            </>
-          ) : (
-            <AddToCartButton medicineId={medicine.id} isAvailable={medicine.stock > 0} stock={medicine.stock} />
-          )}
-        </div>
+        {(isAdmin || canOrder) && (
+          <div className={styles.actions}>
+            {isAdmin ? (
+              <>
+                <button onClick={onUpdate} className={styles.updateButton}>
+                  Update Medicine
+                </button>
+                <button onClick={onDelete} className={styles.deleteButton}>
+                  Delete Medicine
+                </button>
+              </>
+            ) : (
+              <>
+                <AddToCartButton medicineId={medicine.id} isAvailable={medicine.stock > 0} stock={medicine.stock} />
+                <OrderNowButton medicineId={medicine.id} isAvailable={medicine.stock > 0} />
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -25,6 +25,14 @@ class RegisterOrderRequest extends BaseRequest
         return [
             'subscribe_type' => ['required', 'string', Rule::in(['none', 'weekly', 'monthly'])],
             'delivery_type' => ['required', 'string', Rule::in(['basic', 'rapid', 'emergency'])],
+
+            // Where the courier delivers and where the vendor meets the customer
+            // for any equipment on the same order.
+            'delivery_address' => ['required', 'string', 'max:255'],
+            'contact_phone' => ['required', 'string', 'max:50'],
+            'delivery_notes' => ['nullable', 'string', 'max:1000'],
+            'preferred_handover_date' => ['nullable', 'date', 'after_or_equal:today'],
+
             'prescription_images' => ['sometimes', 'array'],
             'prescription_images.*' => [
                 'image',
@@ -40,6 +48,9 @@ class RegisterOrderRequest extends BaseRequest
         return [
             'subscribe_type.in' => 'Invalid subscribe type.',
             'delivery_type.in' => 'Invalid delivery type.',
+            'delivery_address.required' => 'A delivery or handover address is required.',
+            'contact_phone.required' => 'A contact phone number is required so the vendor can reach you.',
+            'preferred_handover_date.after_or_equal' => 'The preferred handover date cannot be in the past.',
             'prescription_images.*.image' => 'The file must be an image.',
             'prescription_images.*.max' => 'The image may not be greater than 2MB.',
             'prescription_images.*.mimes' => 'The image must be a file of type: jpeg, png, jpg.',

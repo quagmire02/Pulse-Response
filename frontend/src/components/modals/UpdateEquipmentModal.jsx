@@ -14,12 +14,15 @@ export default function UpdateEquipmentModal({ equipment, onClose, onSuccess }) 
     description: equipment.description || "",
     category: equipment.category || "",
     price_per_day: equipment.price_per_day || "",
+    sale_price: equipment.sale_price || "",
     size: equipment.size || "",
     quantity: equipment.quantity || "",
     safety_rules: equipment.safety_rules || "",
     condition: equipment.condition || "new",
   })
   const [imageFile, setImageFile] = useState(null)
+  const [isForRent, setIsForRent] = useState(equipment.is_for_rent ?? true)
+  const [isForSale, setIsForSale] = useState(equipment.is_for_sale ?? false)
 
   const handleChange = (e) => {
     setFormData({
@@ -40,11 +43,20 @@ export default function UpdateEquipmentModal({ equipment, onClose, onSuccess }) 
     setErrors({})
     setSuccessMsg("")
 
+    if (!isForRent && !isForSale) {
+      setErrors({ error: "Pick at least one listing type: rent, buy, or both." })
+      setLoading(false)
+      return
+    }
+
     const submissionData = new FormData()
     Object.entries(formData).forEach(([key, value]) => {
       // Allow sending empty/null optional fields so they get cleared if the user wants
+      if (key === "sale_price" && !isForSale) return
       submissionData.append(key, value)
     })
+    submissionData.append("is_for_rent", isForRent ? "1" : "0")
+    submissionData.append("is_for_sale", isForSale ? "1" : "0")
     if (imageFile) {
       submissionData.append("image", imageFile)
     }
@@ -109,6 +121,28 @@ export default function UpdateEquipmentModal({ equipment, onClose, onSuccess }) 
             </div>
 
             <div className={styles.formGroup}>
+              <label className={styles.label}>Listing type *</label>
+              <div className={styles.checkboxRow}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={isForRent}
+                    onChange={(e) => setIsForRent(e.target.checked)}
+                  />
+                  Available to rent
+                </label>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={isForSale}
+                    onChange={(e) => setIsForSale(e.target.checked)}
+                  />
+                  Available to buy
+                </label>
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
               <label className={styles.label}>Price per Day ($) *</label>
               <input
                 type="number"
@@ -121,6 +155,22 @@ export default function UpdateEquipmentModal({ equipment, onClose, onSuccess }) 
               />
               {errors.price_per_day && <span className={styles.fieldError}>{errors.price_per_day}</span>}
             </div>
+
+            {isForSale && (
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Sale Price ($) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="sale_price"
+                  value={formData.sale_price}
+                  onChange={handleChange}
+                  className={styles.input}
+                  required
+                />
+                {errors.sale_price && <span className={styles.fieldError}>{errors.sale_price}</span>}
+              </div>
+            )}
 
             <div className={styles.formGroup}>
               <label className={styles.label}>Quantity *</label>

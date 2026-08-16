@@ -3,11 +3,21 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getCategoriesAction } from "@/actions/categoryActions"
-import { getMedicinesAction } from "@/actions/medicineActions"
+import {
+  getMedicinesAction,
+  getMedicineSuggestionsAction,
+  getMedicineAlternativesAction,
+} from "@/actions/medicineActions"
+import { getUserRoleAction } from "@/actions/authActions"
+import { isCustomerRole } from "@/libs/roles"
 import MedicineSidebar from "@/components/sidebars/MedicineSidebar"
 import MedicineCard from "@/components/cards/MedicineCard"
 import Pagination from "@/components/paginations/Pagination"
 import styles from "./page.module.css"
+
+// Suggestions should appear after a character or two, without a request per keystroke.
+const SUGGESTION_MIN_CHARS = 1
+const SUGGESTION_DEBOUNCE_MS = 150
 
 export default function MedicinesPage() {
   const router = useRouter()
@@ -22,7 +32,12 @@ export default function MedicinesPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [highlightIndex, setHighlightIndex] = useState(-1)
+  const [canOrder, setCanOrder] = useState(false)
+  const [alternatives, setAlternatives] = useState([])
+  const [alternativeGenerics, setAlternativeGenerics] = useState([])
   const searchContainerRef = useRef(null)
+  const debounceRef = useRef(null)
 
   const currentFilters = {
     name: searchParams.get("name") || "",
@@ -34,11 +49,17 @@ export default function MedicinesPage() {
 
   useEffect(() => {
     loadCategories()
+    loadRole()
   }, [])
 
   useEffect(() => {
     loadMedicines()
   }, [searchParams])
+
+  const loadRole = async () => {
+    const role = await getUserRoleAction()
+    setCanOrder(isCustomerRole(role))
+  }
 
   const loadCategories = async () => {
     try {
@@ -71,12 +92,37 @@ export default function MedicinesPage() {
         setMedicines(result.data)
         setPagination(result.pagination)
         setError(null)
+        await loadAlternatives(currentFilters.name, result.data)
       }
     } catch (err) {
       setError("Failed to load medicines")
     } finally {
       setLoading(false)
     }
+  }
+
+  /**
+   * When a search turns up nothing in stock, recommend medicines built on the
+   * same chemical — searching "napa" with no stock surfaces other paracetamols.
+   */
+  const loadAlternatives = async (searchedName, results) => {
+    const hasStockedResult = (results || []).some((medicine) => medicine.stock > 0)
+
+    if (!searchedName || hasStockedResult) {
+      setAlternatives([])
+      setAlternativeGenerics([])
+      return
+    }
+
+    const result = await getMedicineAlternativesAction({ name: searchedName })
+    if (result.error) {
+      setAlternatives([])
+      setAlternativeGenerics([])
+      return
+    }
+
+    setAlternatives(result.data)
+    setAlternativeGenerics(result.matchedBy === "generic_name" ? result.genericNames : [])
   }
 
   const updateFilters = (newFilters) => {
@@ -102,24 +148,27 @@ export default function MedicinesPage() {
     router.push(`/medicines?${params.toString()}`)
   }
 
-  const fetchSuggestions = async (term) => {
-    if (!term || term.trim() === "") {
+  const fetchSuggestions = (term) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+
+    if (!term || term.trim().length < SUGGESTION_MIN_CHARS) {
       setSuggestions([])
       setShowSuggestions(false)
       return
     }
-    try {
-      const result = await getMedicinesAction({ name: term, per_page: 100 })
-      if (!result.error && result.data) {
-        setSuggestions(result.data)
-        setShowSuggestions(true)
-      } else {
+
+    debounceRef.current = setTimeout(async () => {
+      const result = await getMedicineSuggestionsAction(term)
+      if (result.error) {
         setSuggestions([])
+        return
       }
-    } catch (err) {
-      console.error("Error fetching suggestions:", err)
-      setSuggestions([])
-    }
+      setSuggestions(result.data)
+      setShowSuggestions(result.data.length > 0)
+      setHighlightIndex(-1)
+    }, SUGGESTION_DEBOUNCE_MS)
   }
 
   useEffect(() => {
@@ -131,6 +180,7 @@ export default function MedicinesPage() {
     document.addEventListener("mousedown", handleClickOutside)
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
+      if (debounceRef.current) clearTimeout(debounceRef.current)
     }
   }, [])
 
@@ -149,7 +199,25 @@ export default function MedicinesPage() {
   const handleSuggestionClick = (medName) => {
     setSearchTerm(medName)
     setShowSuggestions(false)
+    setHighlightIndex(-1)
     updateFilters({ name: medName })
+  }
+
+  const handleSearchKeyDown = (e) => {
+    if (!showSuggestions || suggestions.length === 0) return
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setHighlightIndex((index) => (index + 1) % suggestions.length)
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setHighlightIndex((index) => (index <= 0 ? suggestions.length - 1 : index - 1))
+    } else if (e.key === "Enter" && highlightIndex >= 0) {
+      e.preventDefault()
+      handleSuggestionClick(suggestions[highlightIndex].name)
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false)
+    }
   }
 
   const toggleSidebar = () => {
@@ -185,8 +253,9 @@ export default function MedicinesPage() {
                   placeholder="Search medicines..."
                   value={nameTerm}
                   onChange={handleSearchChange}
+                  onKeyDown={handleSearchKeyDown}
                   onFocus={() => {
-                    if (nameTerm.trim() !== "") {
+                    if (suggestions.length > 0) {
                       setShowSuggestions(true)
                     }
                   }}
@@ -200,16 +269,18 @@ export default function MedicinesPage() {
 
               {showSuggestions && suggestions.length > 0 && (
                 <ul className={styles.suggestionsDropdown}>
-                  {suggestions.map((medicine) => (
+                  {suggestions.map((medicine, index) => (
                     <li
                       key={medicine.id}
-                      onClick={() => handleSuggestionClick(medicine.name)}
-                      className={styles.suggestionItem}
+                      onMouseDown={() => handleSuggestionClick(medicine.name)}
+                      onMouseEnter={() => setHighlightIndex(index)}
+                      className={`${styles.suggestionItem} ${index === highlightIndex ? styles.suggestionItemActive : ""}`}
                     >
                       <div className={styles.suggestionName}>{medicine.name}</div>
                       {medicine.generic_name && (
                         <span className={styles.suggestionGeneric}>({medicine.generic_name})</span>
                       )}
+                      {medicine.stock <= 0 && <span className={styles.suggestionOutOfStock}>Out of stock</span>}
                     </li>
                   ))}
                 </ul>
@@ -225,11 +296,28 @@ export default function MedicinesPage() {
             <>
               <div className={styles.medicineGrid}>
                 {medicines.length > 0 ? (
-                  medicines.map((medicine) => <MedicineCard key={medicine.id} medicine={medicine} />)
+                  medicines.map((medicine) => (
+                    <MedicineCard key={medicine.id} medicine={medicine} canOrder={canOrder} />
+                  ))
                 ) : (
                   <div className={styles.noResults}>No medicines found</div>
                 )}
               </div>
+
+              {alternatives.length > 0 && (
+                <div className={styles.alternativesSection}>
+                  <h3 className={styles.alternativesTitle}>
+                    {alternativeGenerics.length > 0
+                      ? `"${currentFilters.name}" is out of stock — other ${alternativeGenerics.join(", ")} options:`
+                      : `"${currentFilters.name}" is out of stock — similar options in the same category:`}
+                  </h3>
+                  <div className={styles.medicineGrid}>
+                    {alternatives.map((medicine) => (
+                      <MedicineCard key={medicine.id} medicine={medicine} canOrder={canOrder} />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {pagination && medicines.length > 0 && (
                 <Pagination

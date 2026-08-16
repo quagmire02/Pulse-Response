@@ -246,17 +246,60 @@ export default function OrderDetailCard({ order, isAdmin = false }) {
       <div className={styles.itemsSection}>
         <h3 className={styles.sectionTitle}>Order Items</h3>
         <div className={styles.orderItems}>
-          {order.order_items.map((item) => (
-            <div key={item.id} className={styles.orderItem}>
-              <div className={styles.itemInfo}>
-                <span className={styles.itemName}>{item.medicine.name}</span>
-                <span className={styles.itemId}>Medicine ID: {item.medicine_id}</span>
+          {order.order_items.map((item) => {
+            const isEquipment = item.item_type && item.item_type !== "medicine"
+            const product = isEquipment ? item.equipment : item.medicine
+            const label = isEquipment
+              ? item.item_type === "equipment_rental"
+                ? `Rental, ${item.rental_start} to ${item.rental_end}`
+                : "Equipment purchase"
+              : `Medicine ID: ${item.medicine_id}`
+
+            return (
+              <div key={item.id} className={styles.orderItem}>
+                <div className={styles.itemInfo}>
+                  <span className={styles.itemName}>{product?.name || "Unavailable item"}</span>
+                  <span className={styles.itemId}>{label}</span>
+                </div>
+                <div className={styles.itemQuantity}>Qty: {item.quantity}</div>
               </div>
-              <div className={styles.itemQuantity}>Qty: {item.quantity}</div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
+
+      {order.equipment_fulfillments && order.equipment_fulfillments.length > 0 && (
+        <div className={styles.itemsSection}>
+          <h3 className={styles.sectionTitle}>Equipment Handover</h3>
+          <div className={styles.orderItems}>
+            {order.equipment_fulfillments.map((fulfillment) => (
+              <div key={fulfillment.id} className={styles.orderItem}>
+                <div className={styles.itemInfo}>
+                  <span className={styles.itemName}>
+                    {fulfillment.equipment?.name || "Equipment"}
+                    {fulfillment.vendor?.company_name ? ` from ${fulfillment.vendor.company_name}` : ""}
+                  </span>
+                  <span className={styles.itemId}>
+                    Status: {fulfillment.status}
+                    {fulfillment.handover_scheduled_at
+                      ? `, scheduled for ${new Date(fulfillment.handover_scheduled_at).toLocaleString()}`
+                      : ""}
+                  </span>
+                  {fulfillment.handover_address && (
+                    <span className={styles.itemId}>Address: {fulfillment.handover_address}</span>
+                  )}
+                  {fulfillment.vendor_note && (
+                    <span className={styles.itemId}>Vendor note: {fulfillment.vendor_note}</span>
+                  )}
+                  {fulfillment.vendor?.contact_phone && (
+                    <span className={styles.itemId}>Vendor phone: {fulfillment.vendor.contact_phone}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isUpdating && (
         <form onSubmit={onUpdate} className={styles.updateForm}>

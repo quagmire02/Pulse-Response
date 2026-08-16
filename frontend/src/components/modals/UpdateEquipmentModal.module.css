@@ -114,6 +114,22 @@
   color: #64748b;
 }
 
+.checkboxRow {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #475569;
+  cursor: pointer;
+}
+
 .fieldError {
   color: #ef4444;
   font-size: 0.75rem;

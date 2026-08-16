@@ -7,6 +7,7 @@ import { getUserIdAction, getUserRoleAction } from "@/actions/authActions"
 import { getPharmacistAction } from "@/actions/pharmacistActions"
 import { getVendorAction } from "@/actions/vendorActions"
 import { getAmbulanceCompanyAction } from "@/actions/ambulanceActions"
+import { isAdminRole, isCustomerRole } from "@/libs/roles"
 import styles from "./Navbar.module.css"
 
 export default function Navbar() {
@@ -18,6 +19,10 @@ export default function Navbar() {
   const [isAmbulanceCompany, setIsAmbulanceCompany] = useState(false)
   const router = useRouter()
 
+  const isAdmin = isAdminRole(userRole)
+  // Only customers shop; partner accounts get their dashboards instead.
+  const isCustomer = isCustomerRole(userRole)
+
   useEffect(() => {
     const fetchUserData = async () => {
       const id = await getUserIdAction()
@@ -27,7 +32,7 @@ export default function Navbar() {
       if (id) {
         const result = await getPharmacistAction(id)
         setIsDoctor(!result.error)
-        
+
         const vendorResult = await getVendorAction(id)
         setIsVendor(!vendorResult.error)
 
@@ -99,28 +104,33 @@ export default function Navbar() {
           <button className={styles.menuItem} onClick={() => handleNavigation("/pharmacist")}>
             Pharmacists
           </button>
-          <button className={styles.menuItem} onClick={() => handleNavigation("/cart")}>
-            Cart
-          </button>
-          <button className={styles.menuItem} onClick={() => handleNavigation("/orders")}>
-            Orders
-          </button>
-           <button className={styles.menuItem} onClick={() => handleNavigation("/history")}>
+
+          {(isCustomer || isAdmin) && (
+            <>
+              <button className={styles.menuItem} onClick={() => handleNavigation("/cart")}>
+                Cart
+              </button>
+              <button className={styles.menuItem} onClick={() => handleNavigation("/orders")}>
+                Orders
+              </button>
+              <button className={styles.menuItem} onClick={() => handleNavigation("/subscriptions")}>
+                Subscriptions
+              </button>
+              <button className={styles.menuItem} onClick={() => handleNavigation("/payment")}>
+                Payment History
+              </button>
+              <button className={styles.menuItem} onClick={() => handleNavigation("/deliver")}>
+                Deliveries
+              </button>
+            </>
+          )}
+
+          <button className={styles.menuItem} onClick={() => handleNavigation("/history")}>
             Medical Ledger 📋
-          </button>
-           <button className={styles.menuItem} onClick={() => handleNavigation("/subscriptions")}>
-            Subscriptions
-          </button>
-          <button className={styles.menuItem} onClick={() => handleNavigation("/payment")}>
-            Payment History
-          </button>
-          <button className={styles.menuItem} onClick={() => handleNavigation("/deliver")}>
-            Deliveries
           </button>
           <button className={styles.menuItem} onClick={() => handleNavigation("/notification")}>
             Notifications
           </button>
-          
 
           {isDoctor && (
             <button className={styles.menuItem} onClick={() => handleNavigation(`/pharmacist/${userId}`)}>
@@ -134,13 +144,12 @@ export default function Navbar() {
             </button>
           )}
 
-          {(isVendor || isAmbulanceCompany || userRole === "super_admin" || userRole === "admin") && (
-            <button className={styles.menuItem} onClick={() => handleNavigation("/partner-dashboard")}>
-              Partner Dashboard 📈
-            </button>
-          )}
+          {/* The dashboard specialises itself per role, so everyone gets a link. */}
+          <button className={styles.menuItem} onClick={() => handleNavigation("/partner-dashboard")}>
+            Analytics Dashboard
+          </button>
 
-          {(userRole === "super_admin" || userRole === "admin") && (
+          {isAdmin && (
             <button className={styles.menuItem} onClick={() => handleNavigation("/admin-dashboard")}>
               Admin Dashboard
             </button>

@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import {AddToCartButton} from "@/components/buttons/buttons"
+import {AddToCartButton, OrderNowButton} from "@/components/buttons/buttons"
 import styles from "./MedicineCard.module.css"
 
-export default function MedicineCard({ medicine }) {
+export default function MedicineCard({ medicine, canOrder = false }) {
   const router = useRouter()
   const [imageError, setImageError] = useState(false)
   const imageUrl = medicine.image_url
@@ -50,9 +50,12 @@ export default function MedicineCard({ medicine }) {
           <div className={styles.stock}>Stock: {medicine.stock}</div>
         </div>
 
-        <div className={styles.actions}>
-          <AddToCartButton medicineId={medicine.id} isAvailable={medicine.stock > 0} disabled={medicine.stock <= 0} />
-        </div>
+        {canOrder && (
+          <div className={styles.actions}>
+            <AddToCartButton medicineId={medicine.id} isAvailable={medicine.stock > 0} disabled={medicine.stock <= 0} />
+            <OrderNowButton medicineId={medicine.id} isAvailable={medicine.stock > 0} disabled={medicine.stock <= 0} />
+          </div>
+        )}
       </div>
     </div>
   )

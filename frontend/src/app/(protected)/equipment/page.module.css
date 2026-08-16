@@ -69,7 +69,8 @@
   gap: 8px;
 }
 
-.suggestionItem:hover {
+.suggestionItem:hover,
+.suggestionItemActive {
   background: #f0f7ff;
 }
 

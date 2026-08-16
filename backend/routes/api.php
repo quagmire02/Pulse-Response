@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\SignupRequestController;
 use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\User\PharmacistController;
 use App\Http\Controllers\User\DoctorReviewController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Misc\ConsultationController;
 use App\Http\Controllers\User\VendorController;
 use App\Http\Controllers\Equipment\EquipmentController;
 use App\Http\Controllers\Equipment\EquipmentRentalController;
+use App\Http\Controllers\Equipment\EquipmentFulfillmentController;
 use App\Http\Controllers\Misc\EmergencyAlertController;
 use App\Http\Controllers\Misc\ActivityLedgerController;
 use App\Http\Controllers\User\AmbulanceCompanyController;
@@ -25,11 +27,18 @@ use App\Http\Controllers\Partner\PartnerDashboardController;
 Route::post('/login', [AuthController::class, 'login'])
     ->name('api.login');
 
-Route::post('/users', [UserController::class, 'createUser'])
-->name('api.createUser');
+Route::post('/signup-requests', [SignupRequestController::class, 'store'])
+    ->name('api.createSignupRequest');
 
 Route::get('/medicines', [MedicineController::class, 'index'])
         ->name('api.getMedicines');
+
+// Registered before /medicines/{id} so the literal segments win over the wildcard.
+Route::get('/medicines/suggestions', [MedicineController::class, 'suggestions'])
+    ->name('api.getMedicineSuggestions');
+
+Route::get('/medicines/alternatives', [MedicineController::class, 'alternatives'])
+    ->name('api.getMedicineAlternatives');
 
 Route::get('/medicines/{id}', [MedicineController::class, 'show'])
     ->name('api.getMedicine');
@@ -37,12 +46,36 @@ Route::get('/medicines/{id}', [MedicineController::class, 'show'])
 Route::get('/equipment', [EquipmentController::class, 'index'])
     ->name('api.getEquipment');
 
+// Registered before /equipment/{id} so the literal segment wins over the wildcard.
+Route::get('/equipment/suggestions', [EquipmentController::class, 'suggestions'])
+    ->name('api.getEquipmentSuggestions');
+
 Route::get('/equipment/{id}', [EquipmentController::class, 'show'])
     ->name('api.getEquipmentItem');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])
         ->name('api.logout');
+
+    Route::get('/signup-requests', [SignupRequestController::class, 'index'])
+        ->name('api.getSignupRequests');
+
+    Route::get('/signup-requests/pending-count', [SignupRequestController::class, 'pendingCount'])
+        ->name('api.getPendingSignupRequestCount');
+
+    Route::post('/signup-requests/{signupRequest}/approve', [SignupRequestController::class, 'approve'])
+        ->name('api.approveSignupRequest');
+
+    Route::post('/signup-requests/{signupRequest}/reject', [SignupRequestController::class, 'reject'])
+        ->name('api.rejectSignupRequest');
+
+    Route::delete('/signup-requests/{signupRequest}', [SignupRequestController::class, 'destroy'])
+        ->name('api.deleteSignupRequest');
+
+    // Public self-service signup goes through /signup-requests; admins can still
+    // create an account outright.
+    Route::post('/users', [UserController::class, 'createUser'])
+        ->name('api.createUser');
 
     Route::get('/users', [UserController::class, 'index'])
         ->name('api.getUsers');
@@ -234,9 +267,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/ambulance-companies/{user}', [AmbulanceCompanyController::class, 'show'])
         ->name('api.getAmbulanceCompany');
 
+    // Equipment handover coordination between customers and vendors
+    Route::get('/equipment-fulfillments', [EquipmentFulfillmentController::class, 'index'])
+        ->name('api.getEquipmentFulfillments');
+    Route::patch('/equipment-fulfillments/{fulfillment}', [EquipmentFulfillmentController::class, 'update'])
+        ->name('api.updateEquipmentFulfillment');
+    Route::patch('/equipment-fulfillments/{fulfillment}/handover', [EquipmentFulfillmentController::class, 'updateByCustomer'])
+        ->name('api.updateEquipmentHandover');
+
     // Partner Dashboards
     Route::get('/partner/vendor-dashboard', [PartnerDashboardController::class, 'vendorDashboard'])
         ->name('api.getVendorDashboard');
     Route::get('/partner/ambulance-dashboard', [PartnerDashboardController::class, 'ambulanceDashboard'])
         ->name('api.getAmbulanceDashboard');
+    Route::get('/partner/customer-dashboard', [PartnerDashboardController::class, 'customerDashboard'])
+        ->name('api.getCustomerDashboard');
     });

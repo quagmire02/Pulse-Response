@@ -94,23 +94,30 @@ class ActivityLedgerController extends Controller
 
             // 1. Medicine Purchases
             if (in_array($typeFilter, ['all', 'purchase'])) {
-                $orders = Order::with('orderItems.medicine')
+                $orders = Order::with(['orderItems.medicine', 'orderItems.equipment'])
                     ->where('user_id', $userId)
                     ->when($fromDate, fn($q) => $q->whereDate('order_date', '>=', $fromDate))
                     ->when($toDate, fn($q) => $q->whereDate('order_date', '<=', $toDate))
                     ->get();
 
                 foreach ($orders as $order) {
+                    // Orders can now mix medicines with equipment bought or rented.
                     $itemsDescription = $order->orderItems->map(function ($item) {
-                        return $item->quantity . 'x ' . ($item->medicine ? $item->medicine->name : 'Medicine');
+                        $name = $item->medicine->name
+                            ?? $item->equipment->name
+                            ?? 'Item';
+
+                        return $item->quantity . 'x ' . $name;
                     })->implode(', ');
+
+                    $hasEquipment = $order->orderItems->contains(fn ($item) => $item->isEquipment());
 
                     $timeline[] = [
                         'id' => $order->id,
                         'type' => 'purchase',
                         'date' => $order->order_date ? Carbon::parse($order->order_date)->toIso8601String() : null,
-                        'title' => 'Medicine Purchase',
-                        'description' => $itemsDescription ?: 'Purchase of medicines',
+                        'title' => $hasEquipment ? 'Order' : 'Medicine Purchase',
+                        'description' => $itemsDescription ?: 'Order placed',
                         'amount' => $order->total_amount,
                         'status' => $order->order_status,
                         'details' => [

@@ -183,6 +183,78 @@
   }
 }
 
+.OrderNowWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.OrderNowButton {
+  background: #0b79d4;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  text-align: center;
+}
+
+.OrderNowButton:hover:not(:disabled) {
+  background: #0965b4;
+  transform: translateY(-1px);
+}
+
+.OrderNowButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.OrderNowButtondisabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.OrderNowError {
+  color: #c33;
+  font-size: 0.8rem;
+}
+
+.RentEquipmentButton {
+  background: #0b79d4;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: center;
+}
+
+.RentEquipmentButton:hover:not(:disabled) {
+  background: #0965b4;
+}
+
+.RentEquipmentButtondisabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 480px){
+  .OrderNowButton {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+    min-width: 100px;
+  }
+}
+
 .AdminDashboardButton {
   width: 100%;
   padding: 0.875rem 1.5rem;
