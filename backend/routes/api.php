@@ -15,6 +15,11 @@ use App\Http\Controllers\Misc\NotificationController;
 use App\Http\Controllers\Misc\ConsultationController;
 use App\Http\Controllers\User\VendorController;
 use App\Http\Controllers\Equipment\EquipmentController;
+use App\Http\Controllers\Equipment\EquipmentRentalController;
+use App\Http\Controllers\Misc\EmergencyAlertController;
+use App\Http\Controllers\Misc\ActivityLedgerController;
+use App\Http\Controllers\User\AmbulanceCompanyController;
+use App\Http\Controllers\Partner\PartnerDashboardController;
 
 
 Route::post('/login', [AuthController::class, 'login'])
@@ -98,6 +103,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/orders/new', [OrderController::class, 'indexNewOrders'])
         ->name('api.getNewOrders');
+
+    Route::get('/subscriptions', [OrderController::class, 'getSubscriptions'])
+        ->name('api.getSubscriptions');
 
     Route::get('/orders/{order}', [OrderController::class, 'show'])
         ->name('api.getOrder');
@@ -203,4 +211,32 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/equipment/{id}', [EquipmentController::class, 'destroy'])
         ->name('api.deleteEquipment');
+
+    // Equipment Rentals
+    Route::post('/equipment-rentals', [EquipmentRentalController::class, 'store'])
+        ->name('api.rentEquipment');
+
+    // Emergency Alerts
+    Route::post('/emergency-alerts', [EmergencyAlertController::class, 'store'])
+        ->name('api.triggerEmergencyAlert');
+
+    // Activity Ledger Timeline
+    Route::get('/ledger/timeline', [ActivityLedgerController::class, 'timeline'])
+        ->name('api.getLedgerTimeline');
+    Route::get('/ledger/summary', [ActivityLedgerController::class, 'summary'])
+        ->name('api.getLedgerSummary');
+    Route::get('/ledger/patient/{userId}', [ActivityLedgerController::class, 'patientTimeline'])
+        ->name('api.getPatientTimeline');
+    Route::get('/ledger/patient/{userId}/summary', [ActivityLedgerController::class, 'patientSummary'])
+        ->name('api.getPatientSummary');
+
+    // Ambulance Company Profile
+    Route::get('/ambulance-companies/{user}', [AmbulanceCompanyController::class, 'show'])
+        ->name('api.getAmbulanceCompany');
+
+    // Partner Dashboards
+    Route::get('/partner/vendor-dashboard', [PartnerDashboardController::class, 'vendorDashboard'])
+        ->name('api.getVendorDashboard');
+    Route::get('/partner/ambulance-dashboard', [PartnerDashboardController::class, 'ambulanceDashboard'])
+        ->name('api.getAmbulanceDashboard');
     });

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { getEquipmentAction } from "@/actions/equipmentActions"
 import EquipmentCard from "@/components/cards/EquipmentCard"
 import Pagination from "@/components/paginations/Pagination"
@@ -19,6 +19,10 @@ export default function EquipmentPage() {
   const [minPrice, setMinPrice] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
   const [availableOnly, setAvailableOnly] = useState(false)
+
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchContainerRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -49,9 +53,52 @@ export default function EquipmentPage() {
 
   const handleChange = (setter) => (e) => { setter(e.target.value); setCurrentPage(1) }
 
+  const fetchSuggestions = async (term) => {
+    if (!term || term.trim() === "") {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    try {
+      const result = await getEquipmentAction({ search: term, per_page: 100 })
+      if (!result.error && result.data) {
+        setSuggestions(result.data)
+        setShowSuggestions(true)
+      } else {
+        setSuggestions([])
+      }
+    } catch {
+      setSuggestions([])
+    }
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value
+    setSearch(value)
+    setCurrentPage(1)
+    fetchSuggestions(value)
+  }
+
+  const handleSuggestionClick = (name) => {
+    setSearch(name)
+    setShowSuggestions(false)
+    setCurrentPage(1)
+  }
+
   const handleReset = () => {
     setSearch(""); setCategory(""); setCondition("")
-    setMinPrice(""); setMaxPrice(""); setAvailableOnly(false); setCurrentPage(1)
+    setMinPrice(""); setMaxPrice(""); setAvailableOnly(false)
+    setSuggestions([]); setShowSuggestions(false); setCurrentPage(1)
   }
 
   return (
@@ -61,7 +108,30 @@ export default function EquipmentPage() {
       </div>
 
       <div className={styles.filterBar}>
-        <input className={styles.filterInput} type="text" placeholder="Search by name or category..." value={search} onChange={handleChange(setSearch)} />
+        <div className={styles.searchWrapper} ref={searchContainerRef}>
+          <input
+            className={styles.filterInput}
+            type="text"
+            placeholder="Search by name or category..."
+            value={search}
+            onChange={handleSearchChange}
+            onFocus={() => search && setShowSuggestions(suggestions.length > 0)}
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className={styles.suggestionDropdown}>
+              {suggestions.map((item) => (
+                <li
+                  key={item.id}
+                  className={styles.suggestionItem}
+                  onMouseDown={() => handleSuggestionClick(item.name)}
+                >
+                  <span className={styles.suggestionName}>{item.name}</span>
+                  {item.category && <span className={styles.suggestionMeta}>{item.category}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <input className={styles.filterInput} type="text" placeholder="Category (e.g. oxygen, vaccine)" value={category} onChange={handleChange(setCategory)} />
         <select className={styles.filterSelect} value={condition} onChange={handleChange(setCondition)}>
           <option value="">Any Condition</option>

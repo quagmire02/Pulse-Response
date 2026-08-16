@@ -44,7 +44,8 @@ class EquipmentController extends Controller
                 $query->where('price_per_day', '<=', $request->max_price);
             }
 
-            $equipment = $query->paginate(10);
+            $perPage = $request->input('per_page', 10);
+            $equipment = $query->paginate($perPage);
             return response()->json($equipment, 200);
         } catch (\Exception $e) {
             Log::error($e->getMessage());

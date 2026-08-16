@@ -262,3 +262,48 @@ export const updateEquipment = async (id, data) => {
 export const deleteEquipment = async (id) => {
   return apiClient.delete(`/equipment/${id}/`);
 };
+
+export const getSubscriptions = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/subscriptions/?${params.toString()}`);
+};
+
+export const rentEquipment = async (data) => {
+  return apiClient.post("/equipment-rentals/", data);
+};
+
+export const triggerEmergencyAlert = async (data) => {
+  return apiClient.post("/emergency-alerts/", data);
+};
+
+export const getLedgerTimeline = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/ledger/timeline/?${params.toString()}`);
+};
+
+export const getLedgerSummary = async () => {
+  return apiClient.get("/ledger/summary/");
+};
+
+export const getPatientTimeline = async (patientId, queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/ledger/patient/${patientId}/?${params.toString()}`);
+};
+
+export const getPatientSummary = async (patientId) => {
+  return apiClient.get(`/ledger/patient/${patientId}/summary/`);
+};
+
+export const getAmbulanceCompany = async (userId) => {
+  return apiClient.get(`/ambulance-companies/${userId}/`);
+};
+
+export const getVendorDashboard = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/partner/vendor-dashboard/?${params.toString()}`);
+};
+
+export const getAmbulanceDashboard = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/partner/ambulance-dashboard/?${params.toString()}`);
+};

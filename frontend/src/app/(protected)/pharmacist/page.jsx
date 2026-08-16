@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { getPharmacistsAction } from "@/actions/pharmacistActions"
 import { getUserRoleAction } from "@/actions/authActions"
 import PharmacistCard from "@/components/cards/PharmacistCard"
@@ -23,6 +23,10 @@ export default function PharmacistPage() {
   const [location, setLocation] = useState("")
   const [minRating, setMinRating] = useState("")
   const [consultationOnly, setConsultationOnly] = useState(false)
+
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchContainerRef = useRef(null)
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -65,6 +69,48 @@ export default function PharmacistPage() {
     return () => { cancelled = true }
   }, [currentPage, search, speciality, location, minRating, consultationOnly])
 
+  const fetchSuggestions = async (term) => {
+    if (!term || term.trim() === "") {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    try {
+      const result = await getPharmacistsAction({ search: term, per_page: 100 })
+      if (!result.error && result.data) {
+        setSuggestions(result.data)
+        setShowSuggestions(true)
+      } else {
+        setSuggestions([])
+      }
+    } catch {
+      setSuggestions([])
+    }
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value
+    setSearch(value)
+    setCurrentPage(1)
+    fetchSuggestions(value)
+  }
+
+  const handleSuggestionClick = (name) => {
+    setSearch(name)
+    setShowSuggestions(false)
+    setCurrentPage(1)
+  }
+
   const handleFilterChange = (setter) => (e) => {
     setter(e.target.value)
     setCurrentPage(1)
@@ -76,6 +122,8 @@ export default function PharmacistPage() {
     setLocation("")
     setMinRating("")
     setConsultationOnly(false)
+    setSuggestions([])
+    setShowSuggestions(false)
     setCurrentPage(1)
   }
 
@@ -89,13 +137,33 @@ export default function PharmacistPage() {
       </div>
 
       <div className={styles.filterBar}>
-        <input
-          className={styles.filterInput}
-          type="text"
-          placeholder="Search by name or speciality..."
-          value={search}
-          onChange={handleFilterChange(setSearch)}
-        />
+        <div className={styles.searchWrapper} ref={searchContainerRef}>
+          <input
+            className={styles.filterInput}
+            type="text"
+            placeholder="Search by name or speciality..."
+            value={search}
+            onChange={handleSearchChange}
+            onFocus={() => search && setShowSuggestions(suggestions.length > 0)}
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className={styles.suggestionDropdown}>
+              {suggestions.map((p) => {
+                const fullName = `${p.user?.first_name ?? ""} ${p.user?.last_name ?? ""}`.trim()
+                return (
+                  <li
+                    key={p.id}
+                    className={styles.suggestionItem}
+                    onMouseDown={() => handleSuggestionClick(fullName)}
+                  >
+                    <span className={styles.suggestionName}>{fullName}</span>
+                    {p.speciality && <span className={styles.suggestionMeta}>{p.speciality}</span>}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
         <input
           className={styles.filterInput}
           type="text"

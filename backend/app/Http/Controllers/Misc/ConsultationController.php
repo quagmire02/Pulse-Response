@@ -57,13 +57,13 @@ class ConsultationController extends Controller
             $user = Auth::user();
 
             if ($user->isSuperAdmin()) {
-                $consultations = Consultation::paginate(10);
+                $consultations = Consultation::with(['user', 'slot.pharmacist.user'])->paginate(10);
             } elseif ($user->isAdmin() || $user->pharmacist) {
-                $consultations = Consultation::whereHas('slot', function ($query) use ($user) {
+                $consultations = Consultation::with(['user', 'slot.pharmacist.user'])->whereHas('slot', function ($query) use ($user) {
                     $query->where('pharmacist_id', $user->pharmacist->id);
                 })->paginate(10);
             } else {
-                $consultations = Consultation::where('user_id', $user->id)->paginate(10);
+                $consultations = Consultation::with(['user', 'slot.pharmacist.user'])->where('user_id', $user->id)->paginate(10);
             }
 
             return response()->json($consultations, 200);
@@ -273,7 +273,7 @@ class ConsultationController extends Controller
             $pharmacist = Pharmacist::find($pharmacistId);
 
             $this->createNotification(
-                $pharmacistId, 
+                $pharmacist->user_id, 
                 'New consultation for ' . Auth::user()->username, 
                 'You have a new consultation scheduled for ' . $date . ' from ' . $startTime . ':00 ' . $startPeriod . ' to ' . $endTime . ':00 ' . $endPeriod . '.'
             );

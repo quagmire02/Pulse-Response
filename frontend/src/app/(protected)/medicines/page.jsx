@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getCategoriesAction } from "@/actions/categoryActions"
 import { getMedicinesAction } from "@/actions/medicineActions"
@@ -20,11 +20,14 @@ export default function MedicinesPage() {
   const [error, setError] = useState(null)
   const [nameTerm, setSearchTerm] = useState(searchParams.get("name") || "")
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchContainerRef = useRef(null)
 
   const currentFilters = {
     name: searchParams.get("name") || "",
     category: searchParams.get("category") || "",
-    is_available: searchParams.get("is_available") || "",
+    is_available: searchParams.get("is_available") || "true",
     sort_by_price: searchParams.get("sort_by_price") || "",
     page: searchParams.get("page") || "1",
   }
@@ -99,13 +102,54 @@ export default function MedicinesPage() {
     router.push(`/medicines?${params.toString()}`)
   }
 
+  const fetchSuggestions = async (term) => {
+    if (!term || term.trim() === "") {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    try {
+      const result = await getMedicinesAction({ name: term, per_page: 100 })
+      if (!result.error && result.data) {
+        setSuggestions(result.data)
+        setShowSuggestions(true)
+      } else {
+        setSuggestions([])
+      }
+    } catch (err) {
+      console.error("Error fetching suggestions:", err)
+      setSuggestions([])
+    }
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+
   const handleSearch = (e) => {
     e.preventDefault()
+    setShowSuggestions(false)
     updateFilters({ name: nameTerm })
   }
 
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value)
+    const value = e.target.value
+    setSearchTerm(value)
+    fetchSuggestions(value)
+  }
+
+  const handleSuggestionClick = (medName) => {
+    setSearchTerm(medName)
+    setShowSuggestions(false)
+    updateFilters({ name: medName })
   }
 
   const toggleSidebar = () => {
@@ -134,18 +178,43 @@ export default function MedicinesPage() {
               ☰
             </button>
 
-            <form onSubmit={handleSearch} className={styles.searchForm}>
-              <input
-                type="text"
-                placeholder="Search medicines..."
-                value={nameTerm}
-                onChange={handleSearchChange}
-                className={styles.searchInput}
-              />
-              <button type="submit" className={styles.searchButton}>
-                Search
-              </button>
-            </form>
+            <div ref={searchContainerRef} className={styles.searchContainer}>
+              <form onSubmit={handleSearch} className={styles.searchForm}>
+                <input
+                  type="text"
+                  placeholder="Search medicines..."
+                  value={nameTerm}
+                  onChange={handleSearchChange}
+                  onFocus={() => {
+                    if (nameTerm.trim() !== "") {
+                      setShowSuggestions(true)
+                    }
+                  }}
+                  className={styles.searchInput}
+                  autoComplete="off"
+                />
+                <button type="submit" className={styles.searchButton}>
+                  Search
+                </button>
+              </form>
+
+              {showSuggestions && suggestions.length > 0 && (
+                <ul className={styles.suggestionsDropdown}>
+                  {suggestions.map((medicine) => (
+                    <li
+                      key={medicine.id}
+                      onClick={() => handleSuggestionClick(medicine.name)}
+                      className={styles.suggestionItem}
+                    >
+                      <div className={styles.suggestionName}>{medicine.name}</div>
+                      {medicine.generic_name && (
+                        <span className={styles.suggestionGeneric}>({medicine.generic_name})</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
 
           {error && <div className={styles.error}>{typeof error === "string" ? error : "An error occurred"}</div>}

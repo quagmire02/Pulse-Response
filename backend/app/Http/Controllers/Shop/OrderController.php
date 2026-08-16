@@ -579,24 +579,6 @@ class OrderController extends Controller
                         $medicine->save();
                     }
 
-                    //NEED TO CHECK THIS
-                    $newOrder = $order->replicate([
-                        'order_date',
-                        'order_status',
-                        'payment_status'
-                    ]);
-                    $newOrder->order_date = $date;
-                    $newOrder->order_status = 'pending';
-                    $newOrder->payment_status = 'pending';
-                    $newOrder->save();
-
-                    foreach ($order->orderItems as $orderItem) {
-                        $newOrderItem = $orderItem->replicate();
-                        $newOrderItem->order_id = $newOrder->id;
-                        $newOrderItem->save();
-                    }
-                    //END CHECK
-
                     foreach ($order->prescriptions as $prescription) {
                         $newPrescription = $prescription->replicate();
                         $newPrescription->order_id = $newOrder->id;
