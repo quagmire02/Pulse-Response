@@ -6,6 +6,7 @@ import { LogoutButton } from "@/components/buttons/buttons"
 import { getUserIdAction, getUserRoleAction } from "@/actions/authActions"
 import { getPharmacistAction } from "@/actions/pharmacistActions"
 import { getVendorAction } from "@/actions/vendorActions"
+import { getAmbulanceCompanyAction } from "@/actions/ambulanceActions"
 import styles from "./Navbar.module.css"
 
 export default function Navbar() {
@@ -14,6 +15,7 @@ export default function Navbar() {
   const [userRole, setUserRole] = useState(null)
   const [isDoctor, setIsDoctor] = useState(false)
   const [isVendor, setIsVendor] = useState(false)
+  const [isAmbulanceCompany, setIsAmbulanceCompany] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -28,6 +30,9 @@ export default function Navbar() {
         
         const vendorResult = await getVendorAction(id)
         setIsVendor(!vendorResult.error)
+
+        const ambulanceResult = await getAmbulanceCompanyAction(id)
+        setIsAmbulanceCompany(!ambulanceResult.error)
       }
     }
     fetchUserData()
@@ -100,6 +105,9 @@ export default function Navbar() {
           <button className={styles.menuItem} onClick={() => handleNavigation("/orders")}>
             Orders
           </button>
+           <button className={styles.menuItem} onClick={() => handleNavigation("/history")}>
+            Medical Ledger 📋
+          </button>
            <button className={styles.menuItem} onClick={() => handleNavigation("/subscriptions")}>
             Subscriptions
           </button>
@@ -123,6 +131,12 @@ export default function Navbar() {
           {isVendor && (
             <button className={styles.menuItem} onClick={() => handleNavigation(`/vendor/${userId}`)}>
               My Vendor Profile
+            </button>
+          )}
+
+          {(isVendor || isAmbulanceCompany || userRole === "super_admin" || userRole === "admin") && (
+            <button className={styles.menuItem} onClick={() => handleNavigation("/partner-dashboard")}>
+              Partner Dashboard 📈
             </button>
           )}
 

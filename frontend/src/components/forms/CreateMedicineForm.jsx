@@ -64,6 +64,22 @@ function FormContent({ categories, errors, successMessage }) {
       </div>
 
       <div className={styles.formGroup}>
+        <label htmlFor="generic_name" className={styles.label}>
+          Generic Name *
+        </label>
+        <input
+          type="text"
+          id="generic_name"
+          name="generic_name"
+          className={`${styles.input} ${errors.generic_name ? styles.inputError : ""}`}
+          placeholder="Enter generic name (e.g. Paracetamol)"
+          required
+          disabled={pending}
+        />
+        {errors.generic_name && <span className={styles.errorText}>{errors.generic_name}</span>}
+      </div>
+
+      <div className={styles.formGroup}>
         <label className={styles.label}>Category *</label>
         {categoryInputs.map((input, index) => (
           <div key={input.id} className={styles.dynamicField}>

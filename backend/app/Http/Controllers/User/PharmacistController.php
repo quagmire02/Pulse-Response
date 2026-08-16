@@ -72,7 +72,8 @@ class PharmacistController extends Controller
                 $query->withAvg('reviews', 'rating');
             }
 
-            $pharmacists = $query->paginate(10);
+            $perPage = $request->input('per_page', 10);
+            $pharmacists = $query->paginate($perPage);
             return response()->json($pharmacists, 200);
         } catch (\Exception $e) {
             Log::error($e->getMessage());

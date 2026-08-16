@@ -30,6 +30,16 @@ class Vendor extends Model
         return $this->hasMany(Equipment::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(VendorReview::class);
+    }
+
+    public function rentals(): HasMany
+    {
+        return $this->hasMany(EquipmentRental::class);
+    }
+
     public function scopeSearch(Builder $query, string $search): Builder
     {
         return $query->where('company_name', 'ilike', "%{$search}%")

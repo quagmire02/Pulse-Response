@@ -106,33 +106,42 @@ class MedicineController extends Controller
         try {
             $query = Medicine::query();
 
-            if ($request->has('category')) {
+            if ($request->has('category') && $request->input('category') !== '') {
                 $categoryName = $request->input('category');
                 $query->whereHas('categories', function ($q) use ($categoryName) {
                     $q->where('categories.name', $categoryName);
                 });
             }
 
-            if ($request->has('name')) {
-                $name = $request->input('name');
-                $query->where('name', 'like', '%' . $name . '%');
+            if ($request->has('name') && $request->input('name') !== '') {
+                $name = mb_strtolower($request->input('name'));
+                $query->where(function ($q) use ($name) {
+                    $q->whereRaw('LOWER(name) LIKE ?', ['%' . $name . '%'])
+                      ->orWhereRaw('LOWER(brand) LIKE ?', ['%' . $name . '%'])
+                      ->orWhereRaw('LOWER(generic_name) LIKE ?', ['%' . $name . '%'])
+                      ->orWhereRaw('LOWER(dosage) LIKE ?', ['%' . $name . '%'])
+                      ->orWhereHas('categories', function ($catQ) use ($name) {
+                          $catQ->whereRaw('LOWER(name) LIKE ?', ['%' . $name . '%']);
+                      });
+                });
             }
 
-             if ($request->has('sort_by_price')) {
+            if ($request->has('sort_by_price') && $request->input('sort_by_price') !== '') {
                 $sortOrder = $request->input('sort_by_price', 'asc');
                 $query->orderBy('price', $sortOrder);
             }
 
-            if ($request->has('is_available')) {
+            if ($request->has('is_available') && $request->input('is_available') !== '') {
                 $isAvailable = $request->input('is_available');
                 if ($isAvailable === 'true') {
                     $query->where('stock', '>', 0);
-                } else {
+                } elseif ($isAvailable === 'false') {
                     $query->where('stock', 0);
                 }
             }
 
-            $medicines = $query->paginate(10);
+            $perPage = $request->input('per_page', 10);
+            $medicines = $query->paginate($perPage);
 
             return response()->json($medicines, 200);
         } catch (\Exception $e) {

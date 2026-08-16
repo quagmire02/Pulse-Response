@@ -70,3 +70,105 @@
   }
 }
 
+.alternativesSection {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.alternativesTitle {
+  font-size: 1.25rem;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.alternativesLoading {
+  color: #64748b;
+  font-style: italic;
+}
+
+.alternativesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.altCard {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.altCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.altImage {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.altPlaceholder {
+  height: 150px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.altInfo {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.altName {
+  font-size: 1rem;
+  color: #0f172a;
+  margin: 0;
+  font-weight: 600;
+}
+
+.altBrand {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.altPrice {
+  font-size: 1.125rem;
+  color: #0284c7;
+  font-weight: 700;
+  margin: 0.25rem 0 0 0;
+}
+
+.altAvailable {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  background: #dcfce7;
+  color: #15803d;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.noAlternatives {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+

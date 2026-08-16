@@ -50,6 +50,14 @@ export default function MedicineDetailCard({ medicine, onUpdate, onDelete, isAdm
             <span className={styles.value}>{medicine.brand}</span>
           </div>
         </div>
+        {medicine.generic_name && (
+          <div className={styles.details}>
+            <div className={styles.detailItem}>
+              <span className={styles.label}>Generic Name:</span>
+              <span className={styles.value}>{medicine.generic_name}</span>
+            </div>
+          </div>
+        )}
         <div className={styles.details}>
           <div className={styles.detailItem}>
             <span className={styles.label}>Stock:</span>

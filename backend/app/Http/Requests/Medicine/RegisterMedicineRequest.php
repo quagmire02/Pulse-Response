@@ -24,6 +24,7 @@ class RegisterMedicineRequest extends BaseRequest
     {
         return [
             'name' => ['required', 'string'],
+            'generic_name' => ['required', 'string'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:1'],
             'dosage' => ['required', 'string'],

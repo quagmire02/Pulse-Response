@@ -65,7 +65,7 @@ export default function MedicineSidebar({ categories, currentFilters, onFilterCh
               onChange={handleAvailabilityChange}
               className={styles.select}
             >
-              <option value="">All Items</option>
+              <option value="all">All Items</option>
               <option value="true">Available Only</option>
               <option value="false">Unavailable Only</option>
             </select>

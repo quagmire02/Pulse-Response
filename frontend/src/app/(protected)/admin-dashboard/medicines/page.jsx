@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getCategoriesAction } from "@/actions/categoryActions"
 import { getMedicinesAction } from "@/actions/medicineActions"
@@ -28,6 +28,10 @@ export default function AdminMedicinesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [medicineToDelete, setMedicineToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
+
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchContainerRef = useRef(null)
 
   const [filters, setFilters] = useState({
     name: searchParams.get("name") || "",
@@ -119,7 +123,49 @@ export default function AdminMedicinesPage() {
 
   const handleSearch = (e) => {
     e.preventDefault()
+    setShowSuggestions(false)
     updateFilters({ name: nameTerm })
+  }
+
+  const fetchSuggestions = async (term) => {
+    if (!term || term.trim() === "") {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    try {
+      const result = await getMedicinesAction({ name: term, per_page: 100 })
+      if (!result.error && result.data) {
+        setSuggestions(result.data)
+        setShowSuggestions(true)
+      } else {
+        setSuggestions([])
+      }
+    } catch {
+      setSuggestions([])
+    }
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value
+    setSearchTerm(value)
+    fetchSuggestions(value)
+  }
+
+  const handleSuggestionClick = (medName) => {
+    setSearchTerm(medName)
+    setShowSuggestions(false)
+    updateFilters({ name: medName })
   }
 
   const handleDeleteClick = (medicine) => {
@@ -186,13 +232,32 @@ export default function AdminMedicinesPage() {
             ☰
           </button>
           <form onSubmit={handleSearch} className={styles.searchForm}>
-            <input
-              type="text"
-              placeholder="Search medicines..."
-              value={nameTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={styles.searchInput}
-            />
+            <div className={styles.searchWrapper} ref={searchContainerRef}>
+              <input
+                type="text"
+                placeholder="Search medicines..."
+                value={nameTerm}
+                onChange={handleSearchChange}
+                onFocus={() => nameTerm && setShowSuggestions(suggestions.length > 0)}
+                className={styles.searchInput}
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <ul className={styles.suggestionDropdown}>
+                  {suggestions.map((med) => (
+                    <li
+                      key={med.id}
+                      className={styles.suggestionItem}
+                      onMouseDown={() => handleSuggestionClick(med.name)}
+                    >
+                      <span className={styles.suggestionName}>{med.name}</span>
+                      {med.category_names?.length > 0 && (
+                        <span className={styles.suggestionMeta}>{med.category_names[0]}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <button type="submit" className={styles.searchButton}>
               Search
             </button>

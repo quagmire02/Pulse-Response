@@ -24,6 +24,7 @@ class UpdateMedicineRequest extends BaseRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string'],
+            'generic_name' => ['sometimes', 'required', 'string'],
             'description' => ['sometimes', 'nullable', 'string'],
             'price' => ['sometimes', 'required', 'numeric', 'min:0'],
             'dosage' => ['sometimes', 'required', 'string'],

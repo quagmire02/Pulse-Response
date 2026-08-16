@@ -83,6 +83,58 @@
   background-color: #0965b4;
 }
 
+.searchWrapper {
+  position: relative;
+  flex: 1;
+}
+
+.searchWrapper .searchInput {
+  width: 100%;
+}
+
+.suggestionDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 999;
+  max-height: 300px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+
+.suggestionItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  gap: 8px;
+}
+
+.suggestionItem:hover {
+  background: #f0f7ff;
+}
+
+.suggestionName {
+  font-weight: 500;
+  color: #1a1a1a;
+  font-size: 0.9rem;
+}
+
+.suggestionMeta {
+  font-size: 0.8rem;
+  color: #888;
+  white-space: nowrap;
+}
+
 .error {
   background-color: #fee;
   color: #c33;
