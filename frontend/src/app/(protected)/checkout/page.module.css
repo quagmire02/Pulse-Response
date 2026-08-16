@@ -172,6 +172,21 @@
   border-color: #0b79d4;
 }
 
+textarea.input {
+  font-family: inherit;
+  resize: vertical;
+}
+
+.helpText {
+  background: #e7f2fb;
+  border: 1px solid #bfdcf3;
+  color: #0b5c9e;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+}
+
 .row {
   display: flex;
   gap: 16px;

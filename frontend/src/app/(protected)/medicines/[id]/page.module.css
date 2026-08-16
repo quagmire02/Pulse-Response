@@ -149,6 +149,13 @@
   margin: 0;
 }
 
+.altGeneric {
+  font-size: 0.8rem;
+  color: #0b79d4;
+  font-weight: 600;
+  margin: 0;
+}
+
 .altPrice {
   font-size: 1.125rem;
   color: #0284c7;

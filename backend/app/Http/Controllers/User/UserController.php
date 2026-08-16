@@ -231,6 +231,19 @@ class UserController extends Controller
      */
     public function createUser(RegisterUserRequest $request): JsonResponse
     {
+        $checkAuthUser = $this->ensureAuthenticated();
+
+        if ($checkAuthUser) {
+            return $checkAuthUser;
+        }
+
+        // Visitors sign up through /signup-requests and wait for approval.
+        if (!Auth::user()->isAdmin() && !Auth::user()->isSuperAdmin()) {
+            return response()->json([
+                "errors" => "You are not authorized to create a user directly."
+            ], 403);
+        }
+
         $validated = $request->validated();
 
         try {

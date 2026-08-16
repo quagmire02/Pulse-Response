@@ -2,6 +2,8 @@
 import {
   getMedicines,
   getMedicine,
+  getMedicineSuggestions,
+  getMedicineAlternatives,
   createMedicine,
   updateMedicine,
   deleteMedicine,
@@ -22,6 +24,10 @@ export const actionError = async (response) => {
 
     if (response.error.name) {
       errorMessages["name"] = response.error.name;
+    }
+
+    if (response.error.generic_name) {
+      errorMessages["generic_name"] = response.error.generic_name;
     }
 
     if (response.error.description) {
@@ -91,6 +97,53 @@ export const getMedicineAction = async (id) => {
   }
 };
 
+export const getMedicineSuggestionsAction = async (term, limit = 8) => {
+  if (!term || term.trim() === "") {
+    return { data: [] };
+  }
+
+  try {
+    const response = await getMedicineSuggestions({ q: term.trim(), limit });
+
+    if (response.error) {
+      return { error: response.error };
+    }
+
+    return { data: response.data || [] };
+  } catch (error) {
+    console.error(error);
+    return { error: error.message || "An unexpected Error occured" };
+  }
+};
+
+/**
+ * Recommend in-stock medicines that share the chemical (generic) name of what the
+ * shopper looked for — e.g. an out-of-stock Napa suggests other Paracetamol brands.
+ * Pass either a medicine id or the raw search term.
+ */
+export const getMedicineAlternativesAction = async ({ medicineId, name, limit = 8 } = {}) => {
+  try {
+    const queryParams = { limit };
+    if (medicineId) queryParams.medicine_id = medicineId;
+    if (name) queryParams.name = name;
+
+    const response = await getMedicineAlternatives(queryParams);
+
+    if (response.error) {
+      return { error: response.error };
+    }
+
+    return {
+      data: response.data || [],
+      genericNames: response.generic_names || [],
+      matchedBy: response.matched_by || "none",
+    };
+  } catch (error) {
+    console.error(error);
+    return { error: error.message || "An unexpected Error occured" };
+  }
+};
+
 export const createMedicineAction = async (formData) => {
   try {
     const response = await createMedicine(formData);
@@ -119,6 +172,7 @@ export const updateMedicineAction = async (id, formData) => {
       data = {
         ...(category_ids.length > 0 && { category_ids }),
         ...(formData.get("name") && { name: formData.get("name") }),
+        ...(formData.get("generic_name") && { generic_name: formData.get("generic_name") }),
         ...(formData.get("description") && { description: formData.get("description") }),
         ...(formData.get("price") && { price: formData.get("price") }),
         ...(formData.get("stock") && { stock: formData.get("stock") }),

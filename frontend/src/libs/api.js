@@ -11,6 +11,31 @@ export const logout = async () => {
   return await apiClient.post("/logout");
 };
 
+export const createSignupRequest = async (data) => {
+  return apiClient.post("/signup-requests/", data);
+};
+
+export const getSignupRequests = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/signup-requests/?${params.toString()}`);
+};
+
+export const getPendingSignupRequestCount = async () => {
+  return apiClient.get("/signup-requests/pending-count/");
+};
+
+export const approveSignupRequest = async (id) => {
+  return apiClient.post(`/signup-requests/${id}/approve/`, {});
+};
+
+export const rejectSignupRequest = async (id, data) => {
+  return apiClient.post(`/signup-requests/${id}/reject/`, data);
+};
+
+export const deleteSignupRequest = async (id) => {
+  return apiClient.delete(`/signup-requests/${id}/`);
+};
+
 export const getUsers = async () => {
   return apiClient.get(`/users/`);
 };
@@ -71,6 +96,16 @@ export const getMedicines = async (queryParams = {}) => {
 
 export const getMedicine = async (id) => {
   return apiClient.get(`/medicines/${id}/`);
+};
+
+export const getMedicineSuggestions = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/medicines/suggestions/?${params.toString()}`);
+};
+
+export const getMedicineAlternatives = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/medicines/alternatives/?${params.toString()}`);
 };
 
 export const createMedicine = async (data) => {
@@ -245,6 +280,11 @@ export const getEquipmentItem = async (id) => {
   return apiClient.get(`/equipment/${id}/`);
 };
 
+export const getEquipmentSuggestions = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/equipment/suggestions/?${params.toString()}`);
+};
+
 export const getVendorEquipment = async (userId, queryParams = {}) => {
   const params = new URLSearchParams(queryParams);
   return apiClient.get(`/vendors/${userId}/equipment/?${params.toString()}`);
@@ -296,6 +336,24 @@ export const getPatientSummary = async (patientId) => {
 
 export const getAmbulanceCompany = async (userId) => {
   return apiClient.get(`/ambulance-companies/${userId}/`);
+};
+
+export const getEquipmentFulfillments = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/equipment-fulfillments/?${params.toString()}`);
+};
+
+export const updateEquipmentFulfillment = async (id, data) => {
+  return apiClient.patch(`/equipment-fulfillments/${id}/`, data);
+};
+
+export const updateEquipmentHandover = async (id, data) => {
+  return apiClient.patch(`/equipment-fulfillments/${id}/handover/`, data);
+};
+
+export const getCustomerDashboard = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/partner/customer-dashboard/?${params.toString()}`);
 };
 
 export const getVendorDashboard = async (queryParams = {}) => {

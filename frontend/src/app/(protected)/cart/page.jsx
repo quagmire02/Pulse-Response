@@ -9,6 +9,9 @@ import styles from "./page.module.css";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
+  const [cartId, setCartId] = useState(null);
+  const [totals, setTotals] = useState(null);
+  const [subtotal, setSubtotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -32,6 +35,9 @@ export default function CartPage() {
         setError(result.error);
       } else {
         setCartItems(result.data.cart_items || []);
+        setCartId(result.data.cart_id);
+        setTotals(result.data.totals || null);
+        setSubtotal(Number(result.data.subtotal ?? 0));
       }
     } catch (err) {
       setError("Failed to load cart items");
@@ -40,14 +46,16 @@ export default function CartPage() {
     }
   };
 
-  const calculateTotal = () => {
-    return cartItems
-      .reduce((total, item) => {
-        const price = Number.parseFloat(item.medicine.price);
-        return total + price * item.quantity;
-      }, 0)
-      .toFixed(2);
-  };
+  const calculateTotal = () => subtotal.toFixed(2);
+
+  // Only shown when the basket actually mixes categories.
+  const breakdown = totals
+    ? [
+        { label: "Medicines", value: Number(totals.medicines ?? 0) },
+        { label: "Equipment purchases", value: Number(totals.equipment_purchases ?? 0) },
+        { label: "Equipment rentals", value: Number(totals.equipment_rentals ?? 0) },
+      ].filter((row) => row.value > 0)
+    : [];
 
   const handleCheckout = () => {
     if (cartItems.length === 0) {
@@ -88,12 +96,18 @@ export default function CartPage() {
       {cartItems.length === 0 ? (
         <div className={styles.emptyCart}>
           <h2>Your cart is empty</h2>
-          <p>Add some delicious items to get started!</p>
+          <p>Add medicines or medical equipment to get started.</p>
           <button
             className={styles.shopButton}
             onClick={() => router.push("/medicines")}
           >
             Browse Medicines
+          </button>
+          <button
+            className={styles.shopButton}
+            onClick={() => router.push("/equipment")}
+          >
+            Browse Equipment
           </button>
         </div>
       ) : (
@@ -103,12 +117,25 @@ export default function CartPage() {
               <CartItemCard
                 key={item.id}
                 item={item}
+                cartId={cartId}
+                allItems={cartItems}
                 onUpdate={loadCartItems}
               />
             ))}
           </div>
 
           <div className={styles.summary}>
+            {breakdown.length > 1 && (
+              <div className={styles.breakdown}>
+                {breakdown.map((row) => (
+                  <div key={row.label} className={styles.breakdownRow}>
+                    <span>{row.label}</span>
+                    <span>${row.value.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className={styles.total}>
               <span className={styles.totalLabel}>Total: </span>
               <span className={styles.totalAmount}>${calculateTotal()}</span>

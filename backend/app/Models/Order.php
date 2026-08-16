@@ -23,11 +23,16 @@ class Order extends Model
         'next_delivery_date',
         'is_subscription_renewal',
         'parent_order_id',
+        'delivery_address',
+        'contact_phone',
+        'delivery_notes',
+        'preferred_handover_date',
     ];
 
     protected $casts = [
         'order_date' => 'date',
         'next_delivery_date' => 'date',
+        'preferred_handover_date' => 'date',
         'is_subscription_renewal' => 'boolean',
     ];
 
@@ -68,6 +73,11 @@ class Order extends Model
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function equipmentFulfillments()
+    {
+        return $this->hasMany(EquipmentFulfillment::class);
     }
 
     public function payment()

@@ -17,12 +17,16 @@ export default function CreateEquipmentModal({ onClose, onSuccess, userRole, ini
     description: "",
     category: "",
     price_per_day: "",
+    sale_price: "",
     size: "",
     quantity: "",
     safety_rules: "",
     condition: "new",
     vendor_id: initialVendorId || "",
   })
+  // Vendors choose whether an item is rentable, sellable, or both.
+  const [isForRent, setIsForRent] = useState(true)
+  const [isForSale, setIsForSale] = useState(false)
   const [imageFile, setImageFile] = useState(null)
 
   useEffect(() => {
@@ -56,10 +60,18 @@ export default function CreateEquipmentModal({ onClose, onSuccess, userRole, ini
     setErrors({})
     setSuccessMsg("")
 
+    if (!isForRent && !isForSale) {
+      setErrors({ error: "Pick at least one listing type: rent, buy, or both." })
+      setLoading(false)
+      return
+    }
+
     const submissionData = new FormData()
     Object.entries(formData).forEach(([key, value]) => {
       if (value !== "") submissionData.append(key, value)
     })
+    submissionData.append("is_for_rent", isForRent ? "1" : "0")
+    submissionData.append("is_for_sale", isForSale ? "1" : "0")
     if (imageFile) {
       submissionData.append("image", imageFile)
     }
@@ -145,6 +157,29 @@ export default function CreateEquipmentModal({ onClose, onSuccess, userRole, ini
             </div>
 
             <div className={styles.formGroup}>
+              <label className={styles.label}>Listing type *</label>
+              <div className={styles.checkboxRow}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={isForRent}
+                    onChange={(e) => setIsForRent(e.target.checked)}
+                  />
+                  Available to rent
+                </label>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={isForSale}
+                    onChange={(e) => setIsForSale(e.target.checked)}
+                  />
+                  Available to buy
+                </label>
+              </div>
+              {errors.is_for_rent && <span className={styles.fieldError}>{errors.is_for_rent}</span>}
+            </div>
+
+            <div className={styles.formGroup}>
               <label className={styles.label}>Price per Day ($) *</label>
               <input
                 type="number"
@@ -157,6 +192,22 @@ export default function CreateEquipmentModal({ onClose, onSuccess, userRole, ini
               />
               {errors.price_per_day && <span className={styles.fieldError}>{errors.price_per_day}</span>}
             </div>
+
+            {isForSale && (
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Sale Price ($) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="sale_price"
+                  value={formData.sale_price}
+                  onChange={handleChange}
+                  className={styles.input}
+                  required
+                />
+                {errors.sale_price && <span className={styles.fieldError}>{errors.sale_price}</span>}
+              </div>
+            )}
 
             <div className={styles.formGroup}>
               <label className={styles.label}>Quantity *</label>

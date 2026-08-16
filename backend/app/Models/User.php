@@ -34,6 +34,7 @@ class User extends Authenticatable
         'is_active',
         'is_admin',
         'is_super_admin',
+        'role',
     ];
 
     /**
@@ -122,6 +123,40 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->is_super_admin;
+    }
+
+    /**
+     * Resolve the role used by the frontend to decide which pages and options to show.
+     * Admin flags win over the stored role, and the profile tables are used as a
+     * fallback for accounts created before the role column existed.
+     */
+    public function resolveRole(): string
+    {
+        if ($this->is_super_admin) {
+            return 'super_admin';
+        }
+
+        if ($this->is_admin) {
+            return 'admin';
+        }
+
+        if ($this->role && $this->role !== 'user') {
+            return $this->role;
+        }
+
+        if ($this->vendor()->exists()) {
+            return 'vendor';
+        }
+
+        if ($this->pharmacist()->exists()) {
+            return 'pharmacist';
+        }
+
+        if ($this->ambulanceCompany()->exists()) {
+            return 'ambulance_company';
+        }
+
+        return 'user';
     }
 
     public function cart(): HasOne

@@ -121,21 +121,24 @@ function SubscriptionsContent() {
                     <div className={styles.section}>
                       <h3 className={styles.sectionTitle}>Medicines Reserved</h3>
                       <div className={styles.medicinesList}>
-                        {sub.order_items.map((item) => (
-                          <div key={item.id} className={styles.medicineItem}>
-                            <div className={styles.medicineInfo}>
-                              <span className={styles.medicineName}>
-                                {item.medicine.name}
-                              </span>
-                              <span className={styles.medicineQty}>
-                                Qty: {item.quantity}
+                        {/* Only medicines renew on a subscription; equipment lines are one-off. */}
+                        {sub.order_items
+                          .filter((item) => item.medicine)
+                          .map((item) => (
+                            <div key={item.id} className={styles.medicineItem}>
+                              <div className={styles.medicineInfo}>
+                                <span className={styles.medicineName}>
+                                  {item.medicine.name}
+                                </span>
+                                <span className={styles.medicineQty}>
+                                  Qty: {item.quantity}
+                                </span>
+                              </div>
+                              <span className={styles.medicinePrice}>
+                                ${(item.medicine.price * item.quantity).toFixed(2)}
                               </span>
                             </div>
-                            <span className={styles.medicinePrice}>
-                              ${(item.medicine.price * item.quantity).toFixed(2)}
-                            </span>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     </div>
 

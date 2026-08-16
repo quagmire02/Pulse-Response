@@ -9,6 +9,9 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Prescription;
 use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\EquipmentFulfillment;
+use App\Models\EquipmentRental;
 use App\Models\Payment;
 use App\Models\Delivery;
 use App\Models\Notification;
@@ -32,6 +35,67 @@ class OrderController extends Controller
             'subject' => $subject,
             'message' => $message,
         ]);
+    }
+
+    /**
+     * Take an equipment line off the shelf and open the coordination record the
+     * vendor and customer use to agree on a handover. Rentals additionally get an
+     * EquipmentRental row so they show up in the existing rental reporting.
+     *
+     * @param array<string, mixed> $validated
+     */
+    private function reserveEquipment(Order $order, OrderItem $orderItem, CartItem $cartItem, array $validated): void
+    {
+        $equipment = $cartItem->equipment;
+        $isRental = $cartItem->isRental();
+
+        $equipment->quantity -= $cartItem->quantity;
+        if ($equipment->quantity <= 0) {
+            $equipment->quantity = 0;
+            $equipment->is_available = false;
+        }
+        $equipment->save();
+
+        $rental = null;
+
+        if ($isRental) {
+            $rental = EquipmentRental::create([
+                'user_id' => $order->user_id,
+                'equipment_id' => $equipment->id,
+                'vendor_id' => $equipment->vendor_id,
+                'rental_start' => $cartItem->rental_start,
+                'rental_end' => $cartItem->rental_end,
+                'total_price' => $cartItem->line_total,
+                'status' => 'active',
+            ]);
+        }
+
+        EquipmentFulfillment::create([
+            'order_id' => $order->id,
+            'order_item_id' => $orderItem->id,
+            'equipment_id' => $equipment->id,
+            'vendor_id' => $equipment->vendor_id,
+            'user_id' => $order->user_id,
+            'equipment_rental_id' => $rental?->id,
+            'type' => $isRental ? EquipmentFulfillment::TYPE_RENTAL : EquipmentFulfillment::TYPE_PURCHASE,
+            'quantity' => $cartItem->quantity,
+            'rental_start' => $cartItem->rental_start,
+            'rental_end' => $cartItem->rental_end,
+            'total_price' => $cartItem->line_total,
+            'status' => EquipmentFulfillment::STATUS_PENDING,
+            'handover_address' => $validated['delivery_address'],
+            'customer_phone' => $validated['contact_phone'],
+            'customer_note' => $validated['delivery_notes'] ?? null,
+        ]);
+
+        // Let the vendor know there is something waiting on them.
+        if ($equipment->vendor && $equipment->vendor->user_id) {
+            $this->createNotification(
+                $equipment->vendor->user_id,
+                'New equipment request',
+                "Order {$order->id} requests {$equipment->name}. Confirm a handover time and place from your partner dashboard."
+            );
+        }
     }
 
     /**
@@ -153,6 +217,12 @@ class OrderController extends Controller
                 'orderItems.medicine' => function ($query) {
                     $query->select('id', 'name');
                 },
+                'orderItems.equipment' => function ($query) {
+                    $query->select('id', 'vendor_id', 'name', 'category');
+                },
+                'orderItems.equipment.vendor:id,user_id,company_name,contact_phone',
+                'equipmentFulfillments.equipment:id,name',
+                'equipmentFulfillments.vendor:id,user_id,company_name,contact_phone',
                 'user' => function ($query) {
                     $query->select('id', 'username');
                 },
@@ -261,14 +331,21 @@ class OrderController extends Controller
      */
     public function create(RegisterOrderRequest $request): JsonResponse
     {
+        // Shopping is a customer-only action; partner accounts have their own dashboards.
+        if (Auth::user()->resolveRole() !== 'user') {
+            return response()->json([
+                "errors" => "Only customer accounts can place orders."
+            ], 403);
+        }
+
         $validated = $request->validated();
-        
+
         try {
             DB::transaction(function () use ($validated, $request) {
                 $user = Auth::user();
 
                 $cart = Cart::where('user_id', $user->id)
-                            ->with('cartItems.medicine')
+                            ->with(['cartItems.medicine', 'cartItems.equipment.vendor'])
                             ->first();
 
                 if (!$cart) {
@@ -279,23 +356,44 @@ class OrderController extends Controller
                     throw new \Exception('Cart is empty.');
                 }
 
-                $totalAmount = 0;
-                $subtotal = 0;
+                // Availability check across every line before anything is written.
+                $medicineSubtotal = 0;
+                $equipmentSubtotal = 0;
+
                 foreach ($cart->cartItems as $cartItem) {
-                    if ($cartItem->medicine) {
+                    if ($cartItem->isMedicine()) {
                         $medicine = $cartItem->medicine;
+
+                        if (!$medicine) {
+                            throw new \Exception('A medicine in your cart is no longer available.');
+                        }
 
                         if ($medicine->stock < $cartItem->quantity) {
                             throw new \Exception('Insufficient stock for medicine ' . $medicine->name);
                         }
 
-                        $subtotal += $cartItem->quantity * $cartItem->medicine->price;
+                        $medicineSubtotal += $cartItem->line_total;
+                        continue;
                     }
+
+                    $equipment = $cartItem->equipment;
+
+                    if (!$equipment) {
+                        throw new \Exception('An equipment item in your cart is no longer available.');
+                    }
+
+                    if ($equipment->quantity < $cartItem->quantity) {
+                        throw new \Exception('Insufficient stock for equipment ' . $equipment->name);
+                    }
+
+                    $equipmentSubtotal += $cartItem->line_total;
                 }
 
-                // Apply subscription discount
+                $subtotal = $medicineSubtotal + $equipmentSubtotal;
+
+                // The subscription discount is a medicines perk; equipment is one-off.
                 $discountRate = Order::getSubscriptionDiscountRate($validated['subscribe_type']);
-                $discountAmount = round($subtotal * $discountRate, 2);
+                $discountAmount = round($medicineSubtotal * $discountRate, 2);
                 $totalAmount = $subtotal - $discountAmount;
 
                 $est_del_date = now()->addDays(3);
@@ -317,18 +415,36 @@ class OrderController extends Controller
                     'order_date' => now(),
                     'subscribe_type' => $validated['subscribe_type'],
                     'next_delivery_date' => $nextDeliveryDate,
+                    'delivery_address' => $validated['delivery_address'],
+                    'contact_phone' => $validated['contact_phone'],
+                    'delivery_notes' => $validated['delivery_notes'] ?? null,
+                    'preferred_handover_date' => $validated['preferred_handover_date'] ?? null,
                 ]);
 
+                $equipmentLines = 0;
+
                 foreach ($cart->cartItems as $cartItem) {
-                    OrderItem::create([
+                    $orderItem = OrderItem::create([
                         'order_id' => $order->id,
+                        'item_type' => $cartItem->item_type,
                         'medicine_id' => $cartItem->medicine_id,
+                        'equipment_id' => $cartItem->equipment_id,
                         'quantity' => $cartItem->quantity,
+                        'rental_start' => $cartItem->rental_start,
+                        'rental_end' => $cartItem->rental_end,
+                        'unit_price' => $cartItem->resolveUnitPrice(),
+                        'line_total' => $cartItem->line_total,
                     ]);
 
-                    $medicine = $cartItem->medicine;
-                    $medicine->stock -= $cartItem->quantity;
-                    $medicine->save();
+                    if ($cartItem->isMedicine()) {
+                        $medicine = $cartItem->medicine;
+                        $medicine->stock -= $cartItem->quantity;
+                        $medicine->save();
+                        continue;
+                    }
+
+                    $equipmentLines++;
+                    $this->reserveEquipment($order, $orderItem, $cartItem, $validated);
                 }
 
                 $this->prescriptionsHandler($request, $order->id);
@@ -346,10 +462,13 @@ class OrderController extends Controller
                 if ($discountAmount > 0) {
                     $notificationMessage .= ". You saved $" . number_format($discountAmount, 2) . " with your " . $validated['subscribe_type'] . " subscription!";
                 }
+                if ($equipmentLines > 0) {
+                    $notificationMessage .= ". The vendor will confirm a handover time and place for your equipment.";
+                }
 
                 $this->createNotification(
                     $user->id,
-                    'Order created', 
+                    'Order created',
                     $notificationMessage
                 );
             });
@@ -443,7 +562,8 @@ class OrderController extends Controller
     {
         $validated = $request->validated();
         try {
-            $order = Order::with('orderItems.medicine')->find($order);
+            $order = Order::with(['orderItems.medicine', 'orderItems.equipment', 'equipmentFulfillments.rental'])
+                ->find($order);
 
             if (!$order) {
                 return response()->json([
@@ -489,7 +609,24 @@ class OrderController extends Controller
                         $medicine->stock += $orderItem->quantity;
                         $medicine->save();
                     }
+
+                    // Equipment goes back on the shelf too.
+                    if ($orderItem->isEquipment() && $orderItem->equipment) {
+                        $equipment = $orderItem->equipment;
+                        $equipment->quantity += $orderItem->quantity;
+                        $equipment->is_available = true;
+                        $equipment->save();
+                    }
                 }
+
+                foreach ($order->equipmentFulfillments as $fulfillment) {
+                    $fulfillment->update(['status' => EquipmentFulfillment::STATUS_CANCELLED]);
+
+                    if ($fulfillment->rental) {
+                        $fulfillment->rental->update(['status' => 'returned']);
+                    }
+                }
+
                 $order->payment_status = 'failed';
                 $order->delivery()->update([
                     'delivery_status' => 'failed',
@@ -526,7 +663,16 @@ class OrderController extends Controller
             
             if ($order_status_key && $validated['order_status'] === 'delivered' && in_array($order->subscribe_type, ['weekly', 'monthly'])) {
                 DB::transaction(function () use ($order) {
-                    foreach ($order->orderItems as $orderItem) {
+                    // Subscriptions renew the medicines only; equipment is a one-off purchase or rental.
+                    $renewableItems = $order->orderItems->filter(
+                        fn ($orderItem) => $orderItem->isMedicine() && $orderItem->medicine
+                    );
+
+                    if ($renewableItems->isEmpty()) {
+                        return;
+                    }
+
+                    foreach ($renewableItems as $orderItem) {
                         $medicine = $orderItem->medicine;
                         if ($medicine->stock < $orderItem->quantity) {
                             throw new \Exception('Insufficient stock for medicine ' . $medicine->name . ' to renew subscription.');
@@ -537,10 +683,8 @@ class OrderController extends Controller
                     $nextDeliveryDate = Order::calculateNextDeliveryDate($order->subscribe_type);
                     // Calculate subscription discount for the renewal
                     $subtotal = 0;
-                    foreach ($order->orderItems as $orderItem) {
-                        if ($orderItem->medicine) {
-                            $subtotal += $orderItem->quantity * $orderItem->medicine->price;
-                        }
+                    foreach ($renewableItems as $orderItem) {
+                        $subtotal += $orderItem->quantity * $orderItem->medicine->price;
                     }
                     $discountRate = Order::getSubscriptionDiscountRate($order->subscribe_type);
                     $discountAmount = round($subtotal * $discountRate, 2);
@@ -564,13 +708,19 @@ class OrderController extends Controller
                         'next_delivery_date' => $nextDeliveryDate,
                         'is_subscription_renewal' => true,
                         'parent_order_id' => $order->id,
+                        'delivery_address' => $order->delivery_address,
+                        'contact_phone' => $order->contact_phone,
+                        'delivery_notes' => $order->delivery_notes,
                     ]);
 
-                    foreach ($order->orderItems as $orderItem) {
+                    foreach ($renewableItems as $orderItem) {
                         OrderItem::create([
                             'order_id' => $newOrder->id,
+                            'item_type' => OrderItem::TYPE_MEDICINE,
                             'medicine_id' => $orderItem->medicine_id,
                             'quantity' => $orderItem->quantity,
+                            'unit_price' => $orderItem->medicine->price,
+                            'line_total' => round($orderItem->quantity * $orderItem->medicine->price, 2),
                         ]);
 
                         // Reserve stock for the renewal order

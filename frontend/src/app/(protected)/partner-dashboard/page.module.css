@@ -4,6 +4,48 @@
   color: #f8fafc;
   padding: 2.5rem 2rem;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Repaint the shared chart components for this dark surface. */
+  --chart-text: #f8fafc;
+  --chart-muted: #94a3b8;
+  --chart-track: rgba(255, 255, 255, 0.08);
+  --chart-surface: rgba(255, 255, 255, 0.03);
+  --chart-border: rgba(255, 255, 255, 0.08);
+  --chart-accent: #38bdf8;
+  --queue-track: rgba(255, 255, 255, 0.06);
+}
+
+/* Two charts side by side, stacking on narrow screens. */
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.chartGrid .section {
+  margin-bottom: 0;
+}
+
+.inlineBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inlineBar .progressBarContainer {
+  width: 80px;
+  margin-top: 0;
+}
+
+.inlineError {
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid rgba(220, 53, 69, 0.4);
+  color: #fca5a5;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
 }
 
 .header {

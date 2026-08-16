@@ -32,6 +32,12 @@ export const actionError = async (response) => {
       errorMessages["order_status"] = response.error.order_status;
     }
 
+    ["delivery_address", "contact_phone", "delivery_notes", "preferred_handover_date"].forEach((key) => {
+      if (response.error[key]) {
+        errorMessages[key] = response.error[key];
+      }
+    });
+
     return { error: errorMessages };
   }
 

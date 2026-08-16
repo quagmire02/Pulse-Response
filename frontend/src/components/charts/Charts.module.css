@@ -1,0 +1,239 @@
+/*
+ * Colours come from custom properties so the same charts read correctly on the
+ * light pages and on the dark analytics dashboard. Defaults are the light theme;
+ * a dark container just overrides these four variables.
+ */
+.shareBars,
+.donutWrapper,
+.trend,
+.statTile,
+.empty {
+  --chart-text: #1e293b;
+  --chart-muted: #64748b;
+  --chart-track: #eef2f6;
+  --chart-surface: #ffffff;
+  --chart-border: #eef2f6;
+  --chart-accent: #0b79d4;
+}
+
+.empty {
+  color: var(--chart-muted);
+  font-size: 0.9rem;
+  padding: 20px 0;
+  margin: 0;
+}
+
+/* Horizontal share bars */
+
+.shareBars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shareRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shareHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 0.88rem;
+}
+
+.shareLabel {
+  color: var(--chart-text);
+  font-weight: 600;
+}
+
+.shareValue {
+  color: var(--chart-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.sharePercent {
+  color: var(--chart-accent);
+  font-weight: 700;
+  min-width: 48px;
+  text-align: right;
+}
+
+.track {
+  height: 10px;
+  background: var(--chart-track);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+/* Donut */
+
+.donutWrapper {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.donut {
+  width: 190px;
+  height: 190px;
+  flex-shrink: 0;
+}
+
+.donutTotal {
+  font-size: 20px;
+  font-weight: 700;
+  fill: var(--chart-text);
+}
+
+.donutCaption {
+  font-size: 11px;
+  fill: var(--chart-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: var(--chart-muted);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.legendLabel {
+  flex: 1;
+  color: var(--chart-text);
+}
+
+.legendValue {
+  font-weight: 700;
+  color: var(--chart-accent);
+}
+
+/* Vertical trend bars */
+
+.trend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trendBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  min-height: 190px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.trendColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 56px;
+}
+
+.trendValue {
+  font-size: 0.75rem;
+  color: var(--chart-muted);
+  white-space: nowrap;
+}
+
+.trendTrack {
+  width: 100%;
+  height: 130px;
+  background: var(--chart-track);
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.trendFill {
+  width: 100%;
+  background: linear-gradient(180deg, #38bdf8, #12a594);
+  border-radius: 6px 6px 0 0;
+  transition: height 0.3s ease;
+}
+
+.trendLabel {
+  font-size: 0.75rem;
+  color: var(--chart-muted);
+  white-space: nowrap;
+}
+
+.caption {
+  font-size: 0.8rem;
+  color: var(--chart-muted);
+  margin: 0;
+}
+
+/* Stat tile */
+
+.statTile {
+  background: var(--chart-surface);
+  border: 1px solid var(--chart-border);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.statLabel {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--chart-muted);
+}
+
+.statValue {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--chart-text);
+}
+
+.statHint {
+  font-size: 0.8rem;
+  color: var(--chart-muted);
+}
+
+@media (max-width: 768px) {
+  .donutWrapper { justify-content: center; }
+  .trendColumn { min-width: 48px; }
+}

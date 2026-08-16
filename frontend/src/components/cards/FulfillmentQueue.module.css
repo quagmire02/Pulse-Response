@@ -1,0 +1,241 @@
+/*
+ * Inherits the --chart-* palette from whichever page hosts it, so the same
+ * queue renders on the dark analytics dashboard and on light pages.
+ */
+.section {
+  --queue-text: var(--chart-text, #1e293b);
+  --queue-muted: var(--chart-muted, #64748b);
+  --queue-surface: var(--chart-surface, #ffffff);
+  --queue-border: var(--chart-border, #eef2f6);
+  --queue-accent: var(--chart-accent, #0b79d4);
+
+  background: var(--queue-surface);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid var(--queue-border);
+}
+
+.sectionTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--queue-text);
+  margin: 0 0 6px 0;
+}
+
+.sectionHint {
+  font-size: 0.88rem;
+  color: var(--queue-muted);
+  margin: 0 0 18px 0;
+}
+
+.noData {
+  color: var(--queue-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.error {
+  background: #fee;
+  color: #c33;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #fcc;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  border: 1px solid var(--queue-border);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--queue-surface);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--queue-text);
+  margin: 0 0 4px 0;
+}
+
+.meta {
+  font-size: 0.82rem;
+  color: var(--queue-muted);
+}
+
+.status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #eef2f6;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.pending {
+  background: #fff4e0;
+  color: #a35b00;
+}
+
+.confirmed {
+  background: #e0f0fe;
+  color: #0b5c9e;
+}
+
+.scheduled {
+  background: #e8f5e8;
+  color: #2d5a2d;
+}
+
+.handed_over,
+.returned {
+  background: #ecfdf5;
+  color: #12775f;
+}
+
+.cancelled {
+  background: #fee;
+  color: #c33;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--queue-text);
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailItem strong {
+  color: var(--queue-muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.note {
+  background: var(--queue-track, rgba(127, 127, 127, 0.08));
+  border-left: 3px solid var(--queue-accent);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 0.86rem;
+  color: var(--queue-text);
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--queue-border);
+  padding-top: 14px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--queue-text);
+}
+
+.input,
+.select,
+.textarea {
+  padding: 9px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  font-weight: 400;
+  outline: none;
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: #0b79d4;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.submitBtn,
+.cancelBtn {
+  padding: 9px 18px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.submitBtn {
+  background: #0b79d4;
+  color: #fff;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #0965b4;
+}
+
+.cancelBtn {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.submitBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .section { padding: 18px; }
+  .details { grid-template-columns: 1fr; }
+}

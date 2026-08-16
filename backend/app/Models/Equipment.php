@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
 
 class Equipment extends Model
@@ -17,23 +18,55 @@ class Equipment extends Model
         'description',
         'category',
         'price_per_day',
+        'sale_price',
         'size',
         'quantity',
         'safety_rules',
         'condition',
         'is_available',
+        'is_for_rent',
+        'is_for_sale',
         'image',
     ];
 
     protected $casts = [
         'is_available' => 'boolean',
+        'is_for_rent' => 'boolean',
+        'is_for_sale' => 'boolean',
         'price_per_day' => 'decimal:2',
+        'sale_price' => 'decimal:2',
         'quantity' => 'integer',
     ];
 
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function fulfillments(): HasMany
+    {
+        return $this->hasMany(EquipmentFulfillment::class);
+    }
+
+    public function rentals(): HasMany
+    {
+        return $this->hasMany(EquipmentRental::class);
+    }
+
+    /**
+     * A shopper can buy this only when the vendor opted in and set a price.
+     */
+    public function isPurchasable(): bool
+    {
+        return $this->is_available
+            && $this->is_for_sale
+            && $this->sale_price !== null
+            && $this->quantity > 0;
+    }
+
+    public function isRentable(): bool
+    {
+        return $this->is_available && $this->is_for_rent && $this->quantity > 0;
     }
 
     public function scopeSearch(Builder $query, string $search): Builder

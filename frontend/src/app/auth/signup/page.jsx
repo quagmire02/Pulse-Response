@@ -7,7 +7,7 @@ export default function SignupPage() {
       <div className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.title}>Create Account</h1>
-          <p className={styles.subtitle}>Join us today and get started</p>
+          <p className={styles.subtitle}>Pick your account type — an admin reviews every request</p>
         </div>
 
         <SignupForm />

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\Auth\AuthRequest;
 use App\Http\Controllers\Controller;
+use App\Models\SignupRequest;
 use App\Models\User;
 use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Support\Facades\Log;
@@ -56,25 +57,39 @@ class AuthController extends Controller
         $validated = $request->validated();
         try {
             $user = User::where('email', $validated['email'])->first();
-    
+
+            // Accounts still waiting on (or refused by) an admin have no users row yet.
+            if (!$user) {
+                $signupRequest = SignupRequest::where('email', $validated['email'])
+                    ->orderByDesc('id')
+                    ->first();
+
+                if ($signupRequest && $signupRequest->isPending()) {
+                    return response()->json([
+                        'errors' => 'Your signup request is still awaiting admin approval.'
+                    ], 403);
+                }
+
+                if ($signupRequest && $signupRequest->status === SignupRequest::STATUS_REJECTED) {
+                    return response()->json([
+                        'errors' => 'Your signup request was rejected.'
+                            . ($signupRequest->rejection_reason ? ' Reason: ' . $signupRequest->rejection_reason : '')
+                    ], 403);
+                }
+            }
+
             // Check password
             if (!$user || !Hash::check($validated['password'], $user->password) || !$user->is_active) {
                 return response()->json([
                     'errors' => 'Credentials are incorrect.'
                 ], 422);
             }
-    
+
             // Create token with 24-hour expiry
             $token = $user->createToken('auth_token', ['*'], now()->addHours(24))->plainTextToken;
 
-            $role = 'user';
+            $role = $user->resolveRole();
 
-            if ($user->is_super_admin) {
-                $role = 'super_admin';
-            } elseif ($user->is_admin) {
-                $role = 'admin';
-            }
-    
             return response()->json([
                 'token' => $token,
                 'user_id' => $user->id,

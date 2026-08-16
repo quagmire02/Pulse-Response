@@ -16,7 +16,213 @@ class MedicineController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:sanctum')->except(['index', 'show']);
+        $this->middleware('auth:sanctum')->except(['index', 'show', 'suggestions', 'alternatives']);
+    }
+
+    /**
+     * @OA\Get(
+     * path="/api/medicines/suggestions",
+     * summary="Typeahead suggestions for the medicine search bar",
+     * description="Returns a short list of matches as soon as the shopper has typed a
+     * character or two. Names that start with the term are ranked above ones that merely contain it.",
+     * tags={"Medicines"},
+     * @OA\Parameter(
+     * name="q",
+     * in="query",
+     * required=true,
+     * @OA\Schema(type="string"),
+     * description="Partial search term, e.g. 'na'."
+     * ),
+     * @OA\Parameter(
+     * name="limit",
+     * in="query",
+     * required=false,
+     * @OA\Schema(type="integer", default=8),
+     * description="Maximum number of suggestions to return (capped at 20)."
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Successful operation",
+     * @OA\JsonContent(
+     * @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Medicine"))
+     * )
+     * ),
+     * @OA\Response(
+     * response=500,
+     * description="Server error",
+     * @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     * )
+     * )
+     */
+    public function suggestions(Request $request): JsonResponse
+    {
+        try {
+            $term = trim((string) $request->input('q', ''));
+
+            if ($term === '') {
+                return response()->json(['data' => []], 200);
+            }
+
+            $limit = min((int) $request->input('limit', 8), 20);
+            $term = mb_strtolower($term);
+
+            $medicines = Medicine::query()
+                ->select('id', 'name', 'generic_name', 'brand', 'dosage', 'price', 'stock', 'image_url')
+                ->where(function ($q) use ($term) {
+                    $q->whereRaw('LOWER(name) LIKE ?', [$term . '%'])
+                      ->orWhereRaw('LOWER(name) LIKE ?', ['%' . $term . '%'])
+                      ->orWhereRaw('LOWER(generic_name) LIKE ?', ['%' . $term . '%'])
+                      ->orWhereRaw('LOWER(brand) LIKE ?', ['%' . $term . '%']);
+                })
+                // Prefix matches first, then in-stock items, then alphabetically.
+                ->orderByRaw('CASE WHEN LOWER(name) LIKE ? THEN 0 ELSE 1 END', [$term . '%'])
+                ->orderByRaw('CASE WHEN stock > 0 THEN 0 ELSE 1 END')
+                ->orderBy('name')
+                ->limit($limit)
+                ->get();
+
+            return response()->json(['data' => $medicines], 200);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                "errors" => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     * path="/api/medicines/alternatives",
+     * summary="Recommend in-stock medicines sharing the same chemical (generic) name",
+     * description="Given either a medicine id or a raw search term, this finds the chemical name(s)
+     * behind the match (e.g. 'Napa' -> 'Paracetamol') and returns other in-stock medicines built on
+     * the same chemical. Falls back to shared categories when no generic name is recorded.",
+     * tags={"Medicines"},
+     * @OA\Parameter(
+     * name="medicine_id",
+     * in="query",
+     * required=false,
+     * @OA\Schema(type="integer"),
+     * description="Look up alternatives for this specific medicine."
+     * ),
+     * @OA\Parameter(
+     * name="name",
+     * in="query",
+     * required=false,
+     * @OA\Schema(type="string"),
+     * description="Look up alternatives for whatever the shopper searched for."
+     * ),
+     * @OA\Parameter(
+     * name="limit",
+     * in="query",
+     * required=false,
+     * @OA\Schema(type="integer", default=8)
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Successful operation",
+     * @OA\JsonContent(
+     * @OA\Property(property="generic_names", type="array", @OA\Items(type="string")),
+     * @OA\Property(property="matched_by", type="string", enum={"generic_name", "category", "none"}),
+     * @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Medicine"))
+     * )
+     * ),
+     * @OA\Response(
+     * response=500,
+     * description="Server error",
+     * @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     * )
+     * )
+     */
+    public function alternatives(Request $request): JsonResponse
+    {
+        try {
+            $limit = min((int) $request->input('limit', 8), 20);
+            $medicineId = $request->input('medicine_id');
+            $name = trim((string) $request->input('name', ''));
+
+            $empty = ['generic_names' => [], 'matched_by' => 'none', 'data' => []];
+
+            // Work out which medicines the shopper was actually after.
+            $matches = collect();
+
+            if ($medicineId) {
+                $matches = Medicine::with('categories:id')->where('id', $medicineId)->get();
+            } elseif ($name !== '') {
+                $lowered = mb_strtolower($name);
+                $matches = Medicine::with('categories:id')
+                    ->where(function ($q) use ($lowered) {
+                        $q->whereRaw('LOWER(name) LIKE ?', ['%' . $lowered . '%'])
+                          ->orWhereRaw('LOWER(brand) LIKE ?', ['%' . $lowered . '%'])
+                          ->orWhereRaw('LOWER(generic_name) LIKE ?', ['%' . $lowered . '%']);
+                    })
+                    ->limit(10)
+                    ->get();
+            }
+
+            if ($matches->isEmpty()) {
+                return response()->json($empty, 200);
+            }
+
+            $matchedIds = $matches->pluck('id')->all();
+            $genericNames = $matches->pluck('generic_name')
+                ->filter(fn ($generic) => filled($generic))
+                ->map(fn ($generic) => mb_strtolower(trim($generic)))
+                ->unique()
+                ->values();
+
+            // Same chemical, different brand, and actually in stock.
+            if ($genericNames->isNotEmpty()) {
+                $query = Medicine::query()
+                    ->whereNotIn('id', $matchedIds)
+                    ->where('stock', '>', 0)
+                    ->where(function ($q) use ($genericNames) {
+                        foreach ($genericNames as $generic) {
+                            $q->orWhereRaw('LOWER(generic_name) = ?', [$generic]);
+                        }
+                    });
+
+                $alternatives = $query->orderBy('price')->limit($limit)->get();
+
+                if ($alternatives->isNotEmpty()) {
+                    return response()->json([
+                        'generic_names' => $matches->pluck('generic_name')->filter()->unique()->values(),
+                        'matched_by' => 'generic_name',
+                        'data' => $alternatives,
+                    ], 200);
+                }
+            }
+
+            // Nothing shares the chemical, so fall back to the same category.
+            $categoryIds = $matches->flatMap(fn ($medicine) => $medicine->categories->pluck('id'))
+                ->unique()
+                ->values();
+
+            if ($categoryIds->isNotEmpty()) {
+                $alternatives = Medicine::query()
+                    ->whereNotIn('id', $matchedIds)
+                    ->where('stock', '>', 0)
+                    ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds))
+                    ->orderBy('price')
+                    ->limit($limit)
+                    ->get();
+
+                if ($alternatives->isNotEmpty()) {
+                    return response()->json([
+                        'generic_names' => $matches->pluck('generic_name')->filter()->unique()->values(),
+                        'matched_by' => 'category',
+                        'data' => $alternatives,
+                    ], 200);
+                }
+            }
+
+            return response()->json($empty, 200);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                "errors" => $e->getMessage()
+            ], 500);
+        }
     }
 
     private function imageHandler(Request $request, array &$validated, ?Medicine $medicine = null): void

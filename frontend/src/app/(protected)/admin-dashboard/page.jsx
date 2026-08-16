@@ -1,13 +1,36 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import AdminDashboardCard from "@/components/cards/AdminDashboardCard"
+import { getPendingSignupRequestCountAction } from "@/actions/signupRequestActions"
 import styles from "./page.module.css"
 
 export default function AdminDashboard() {
   const router = useRouter()
+  const [pendingSignups, setPendingSignups] = useState(0)
+
+  useEffect(() => {
+    const loadPendingSignups = async () => {
+      const result = await getPendingSignupRequestCountAction()
+      if (!result.error) {
+        setPendingSignups(result.data || 0)
+      }
+    }
+    loadPendingSignups()
+  }, [])
 
   const dashboardOptions = [
+    {
+      id: 0,
+      title: "Signup Requests",
+      description:
+        pendingSignups > 0
+          ? `${pendingSignups} request${pendingSignups !== 1 ? "s" : ""} awaiting approval`
+          : "Approve or reject new account requests",
+      icon: "📝",
+      route: "/admin-dashboard/signup-requests",
+    },
     {
       id: 1,
       title: "Manage Medicines",
@@ -57,7 +80,7 @@ export default function AdminDashboard() {
         </button>
         
         <h1 className={styles.title}>Admin Dashboard</h1>
-        <p className={styles.subtitle}>Manage your restaurant operations</p>
+        <p className={styles.subtitle}>Manage accounts, catalogue and orders</p>
       </div>
 
       <div className={styles.grid}>

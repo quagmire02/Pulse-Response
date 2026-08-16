@@ -1,13 +1,29 @@
 "use client"
 import { useState } from "react"
-import { updateCartItemsAction, getCartItemsAction, deleteCartItemAction } from "@/actions/cartActions"
-import { getUserIdAction } from "@/actions/authActions"
+import { setCartLineQuantity, removeCartLine } from "@/libs/cart"
 import styles from "./CartItemCard.module.css"
 
-export default function CartItemCard({ item, onUpdate }) {
+const LABELS = {
+  medicine: "Medicine",
+  equipment_purchase: "Equipment purchase",
+  equipment_rental: "Equipment rental",
+}
+
+/**
+ * One basket line. Handles medicines, equipment bought outright and equipment
+ * rented for a date range, since all three now share a single cart.
+ */
+export default function CartItemCard({ item, cartId, allItems, onUpdate }) {
   const [quantity, setQuantity] = useState(item.quantity)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  const isRental = item.item_type === "equipment_rental"
+  const product = item.item_type === "medicine" ? item.medicine : item.equipment
+  const name = product?.name || "Unavailable item"
+
+  const unitPrice = Number(item.unit_price ?? 0)
+  const lineTotal = Number(item.line_total ?? unitPrice * quantity)
 
   const updateQuantity = async (newQuantity) => {
     if (newQuantity < 1) return
@@ -16,35 +32,13 @@ export default function CartItemCard({ item, onUpdate }) {
       setLoading(true)
       setError("")
 
-      const userId = await getUserIdAction()
-      if (!userId) {
-        setError("User not logged in")
-        return
-      }
-
-      // Get current cart items
-      // Fix is here: Destructure the cart_items directly from the response
-      const currentCart = await getCartItemsAction(userId)
-      if (currentCart.error) {
-        setError("Failed to update cart")
-        return
-      }
-      const cartItems = currentCart.data.cart_items || [];
-
-
-      // Create new request body with updated quantity
-      const updatedItems = cartItems.map((cartItem) => ({
-        medicine_id: cartItem.medicine.id, // Access the medicine ID from the nested medicine object
-        quantity: cartItem.id === item.id ? newQuantity : cartItem.quantity,
-      }))
-
-      const result = await updateCartItemsAction(item.cart_id, updatedItems)
+      const result = await setCartLineQuantity(cartId, allItems, item.id, newQuantity)
 
       if (result.error) {
         setError("Failed to update cart")
       } else {
         setQuantity(newQuantity)
-        onUpdate() // Refresh the cart
+        onUpdate()
       }
     } catch (err) {
       setError("Failed to update cart")
@@ -58,34 +52,7 @@ export default function CartItemCard({ item, onUpdate }) {
       setLoading(true)
       setError("")
 
-      const userId = await getUserIdAction()
-      if (!userId) {
-        setError("User not logged in")
-        return
-      }
-
-      const currentCart = await getCartItemsAction(userId);
-      if (currentCart.error) {
-        setError("Failed to remove item")
-        return
-      }
-      const cartItems = currentCart.data.cart_items || [];
-
-
-      const updatedItems = cartItems
-        .filter((cartItem) => cartItem.id !== item.id)
-        .map((cartItem) => ({
-          medicine_id: cartItem.medicine.id,
-          quantity: cartItem.quantity,
-        }))
-
-      let result;
-
-      if (updatedItems.length === 0) {
-        result = await deleteCartItemAction(item.cart_id)
-      } else {
-        result = await updateCartItemsAction(item.cart_id, updatedItems)
-      }
+      const result = await removeCartLine(cartId, allItems, item.id)
 
       if (result.error) {
         setError("Failed to remove item")
@@ -99,14 +66,24 @@ export default function CartItemCard({ item, onUpdate }) {
     }
   }
 
-  const itemTotal = (Number.parseFloat(item.medicine.price) * quantity).toFixed(2)
-
   return (
     <div className={styles.card}>
       <div className={styles.content}>
         <div className={styles.info}>
-          <h3 className={styles.name}>{item.medicine.name}</h3>
-          <p className={styles.price}>${item.medicine.price} each</p>
+          <h3 className={styles.name}>{name}</h3>
+          <span className={styles.typeBadge}>{LABELS[item.item_type] || "Item"}</span>
+          <p className={styles.price}>
+            ${unitPrice.toFixed(2)} {isRental ? "per day" : "each"}
+          </p>
+          {isRental && (
+            <p className={styles.rentalMeta}>
+              {item.rental_start} to {item.rental_end}
+              {item.rental_days ? ` (${item.rental_days} day${item.rental_days === 1 ? "" : "s"})` : ""}
+            </p>
+          )}
+          {item.equipment?.vendor?.company_name && (
+            <p className={styles.rentalMeta}>Supplied by {item.equipment.vendor.company_name}</p>
+          )}
         </div>
 
         <div className={styles.controls}>
@@ -125,7 +102,7 @@ export default function CartItemCard({ item, onUpdate }) {
           </div>
 
           <div className={styles.total}>
-            <span className={styles.totalAmount}>${itemTotal}</span>
+            <span className={styles.totalAmount}>${lineTotal.toFixed(2)}</span>
           </div>
 
           <button className={styles.removeButton} onClick={removeItem} disabled={loading}>

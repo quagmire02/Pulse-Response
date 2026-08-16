@@ -53,6 +53,42 @@ class EquipmentController extends Controller
         }
     }
 
+    /**
+     * Typeahead suggestions for the equipment search bar. Kept deliberately small and
+     * prefix-first so options appear after a character or two rather than a full name.
+     */
+    public function suggestions(Request $request): JsonResponse
+    {
+        try {
+            $term = trim((string) $request->input('q', ''));
+
+            if ($term === '') {
+                return response()->json(['data' => []], 200);
+            }
+
+            $limit = min((int) $request->input('limit', 8), 20);
+            $term = mb_strtolower($term);
+
+            $equipment = Equipment::query()
+                ->select('id', 'name', 'category', 'price_per_day', 'is_available', 'quantity', 'image')
+                ->where(function ($q) use ($term) {
+                    $q->whereRaw('LOWER(name) LIKE ?', [$term . '%'])
+                      ->orWhereRaw('LOWER(name) LIKE ?', ['%' . $term . '%'])
+                      ->orWhereRaw('LOWER(category) LIKE ?', ['%' . $term . '%']);
+                })
+                ->orderByRaw('CASE WHEN LOWER(name) LIKE ? THEN 0 ELSE 1 END', [$term . '%'])
+                ->orderByDesc('is_available')
+                ->orderBy('name')
+                ->limit($limit)
+                ->get();
+
+            return response()->json(['data' => $equipment], 200);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
+        }
+    }
+
     public function show(string $id): JsonResponse
     {
         try {
