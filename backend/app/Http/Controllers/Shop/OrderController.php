@@ -610,7 +610,7 @@ class OrderController extends Controller
                         $medicine->save();
                     }
 
-                    // Equipment goes back on the shelf too.
+                    // Equipment goes back on the shelf.
                     if ($orderItem->isEquipment() && $orderItem->equipment) {
                         $equipment = $orderItem->equipment;
                         $equipment->quantity += $orderItem->quantity;
@@ -859,10 +859,7 @@ class OrderController extends Controller
     }
 
 
-    /**
-     * Get active subscriptions for the current user.
-     * Returns orders where subscribe_type is weekly or monthly and order is not canceled.
-     */
+    
     public function getSubscriptions()
     {
         try {
@@ -878,7 +875,7 @@ class OrderController extends Controller
                 $query->where('user_id', Auth::user()->id);
             }
 
-            // Only show active subscriptions (not canceled, not renewals — show originals)
+            
             $subscriptions = $query->where('order_status', '!=', 'canceled')
                                    ->orderByDesc('order_date')
                                    ->orderByDesc('id')
