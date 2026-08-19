@@ -102,7 +102,7 @@ export default function Navbar() {
             Equipments
           </button>
           <button className={styles.menuItem} onClick={() => handleNavigation("/pharmacist")}>
-            Pharmacists
+            Medical Consultants
           </button>
 
           {(isCustomer || isAdmin) && (
@@ -126,7 +126,7 @@ export default function Navbar() {
           )}
 
           <button className={styles.menuItem} onClick={() => handleNavigation("/history")}>
-            Medical Ledger 📋
+            Medical Ledger
           </button>
           <button className={styles.menuItem} onClick={() => handleNavigation("/notification")}>
             Notifications
