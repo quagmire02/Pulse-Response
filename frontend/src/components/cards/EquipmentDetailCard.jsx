@@ -8,6 +8,7 @@ import { addToCart, EQUIPMENT_PURCHASE, EQUIPMENT_RENTAL } from "@/libs/cart"
 import UpdateEquipmentModal from "@/components/modals/UpdateEquipmentModal"
 import DeleteModal from "@/components/modals/DeleteModal"
 import { isAdminRole, isCustomerRole } from "@/libs/roles"
+import { equipmentImage } from "@/libs/images"
 import styles from "./EquipmentDetailCard.module.css"
 
 export default function EquipmentDetailCard({ equipment, onUpdateSuccess, onDeleteSuccess }) {
@@ -110,9 +111,7 @@ export default function EquipmentDetailCard({ equipment, onUpdateSuccess, onDele
     }
   }
 
-  const imageUrl = equipment.image
-    ? `${process.env.NEXT_PUBLIC_BASE_URL}/storage/${equipment.image}`
-    : "/placeholder.svg?height=400&width=600&query=equipment"
+  const imageUrl = equipmentImage(equipment)
 
   return (
     <div className={styles.card}>

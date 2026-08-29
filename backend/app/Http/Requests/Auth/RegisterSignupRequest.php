@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Auth;
 
 use App\Http\Requests\BaseRequest;
+use App\Models\AmbulanceCompany;
 use App\Models\SignupRequest;
 use App\Models\Vendor;
 use App\Rules\StrongPassword;
@@ -60,9 +61,14 @@ class RegisterSignupRequest extends BaseRequest
             'address' => ['nullable', 'string', 'max:255'],
             'role' => ['required', 'string', Rule::in(SignupRequest::ROLES)],
 
-            // Pharmacist / doctor fields.
+            // Pharmacist / doctor fields. Drivers supply a driving licence and
+            // ambulance companies an operating licence, so the field is shared.
             'license_num' => [
-                Rule::requiredIf(fn () => in_array($this->input('role'), ['pharmacist', 'doctor', 'vendor'], true)),
+                Rule::requiredIf(fn () => in_array(
+                    $this->input('role'),
+                    ['pharmacist', 'doctor', 'vendor', 'ambulance_company', 'driver'],
+                    true
+                )),
                 'nullable', 'string', 'max:255',
             ],
             'speciality' => [
@@ -75,9 +81,9 @@ class RegisterSignupRequest extends BaseRequest
             ],
             'is_consultation' => ['sometimes', 'boolean'],
 
-            // Vendor fields.
+            // Vendor and ambulance company fields.
             'company_name' => [
-                Rule::requiredIf(fn () => $this->input('role') === 'vendor'),
+                Rule::requiredIf(fn () => in_array($this->input('role'), ['vendor', 'ambulance_company'], true)),
                 'nullable', 'string', 'max:255',
             ],
             'description' => ['nullable', 'string'],
@@ -115,6 +121,12 @@ class RegisterSignupRequest extends BaseRequest
 
             // vendors.license_num is unique, so catch clashes before an admin approves.
             if ($role === 'vendor' && filled($licenseNum) && Vendor::where('license_num', $licenseNum)->exists()) {
+                $validator->errors()->add('license_num', 'This license number is already registered.');
+            }
+
+            // ambulance_companies.license_num is unique for the same reason.
+            if ($role === 'ambulance_company' && filled($licenseNum)
+                && AmbulanceCompany::where('license_num', $licenseNum)->exists()) {
                 $validator->errors()->add('license_num', 'This license number is already registered.');
             }
         });

@@ -323,6 +323,10 @@
 }
 
 .medicineImage {
+  /* Fills the positioned container, the same box next/image used to occupy. */
+  width: 100%;
+  height: 100%;
+  display: block;
   object-fit: cover;
   transition: transform 0.3s;
 }

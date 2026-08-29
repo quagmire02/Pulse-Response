@@ -191,3 +191,37 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.assignBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f4f8;
+}
+
+.assignLabel {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1e293b;
+}
+
+.select {
+  padding: 9px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.select:focus {
+  border-color: #0b79d4;
+}
+
+.assignHint {
+  font-size: 0.8rem;
+  color: #a35b00;
+}

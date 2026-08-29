@@ -74,7 +74,13 @@ export const triggerEmergencyAlertAction = async (data) => {
   try {
     const response = await triggerEmergencyAlert(data);
     if (response.error) return { error: response.error };
-    return { success: response.success || "Emergency alert dispatched.", data: response.data };
+    // `dispatch` carries the assigned vehicle, distance and ETA, or is null when
+    // no ambulance was online to take the call.
+    return {
+      success: response.success || "Emergency alert dispatched.",
+      data: response.data,
+      dispatch: response.dispatch || null,
+    };
   } catch (error) {
     return { error: error.message || "Failed to trigger emergency alert." };
   }

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { getMedicinesAction } from "@/actions/medicineActions"
 import { getCategoriesAction } from "@/actions/categoryActions"
 import Image from "next/image"
+import { medicineImage } from "@/libs/images"
 import styles from "./page.module.css"
 
 export default function HomePage() {
@@ -173,14 +174,15 @@ export default function HomePage() {
             {displayedMedicines.map((medicine) => (
               <div key={medicine.id} className={styles.medicineCard}>
                 <div className={styles.medicineImageContainer}>
-                  <Image
-                    src={
-                      medicine.image_url
-                      ? `${process.env.NEXT_PUBLIC_BASE_URL}/${medicine.image_url}`
-                      : "/placeholder.svg?height=200&width=200&query=medicine"
-                    }
+                  {/*
+                    Plain img rather than next/image: medicine image_url can be
+                    an absolute URL from seeded data, and next/image hard errors
+                    on any hostname not whitelisted in next.config. Every other
+                    card in the app uses a plain img for the same reason.
+                  */}
+                  <img
+                    src={medicineImage(medicine)}
                     alt={medicine.name}
-                    fill
                     className={styles.medicineImage}
                   />
                   <div className={styles.medicinePrice}>${medicine.price}</div>

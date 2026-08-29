@@ -24,8 +24,8 @@ export const getPendingSignupRequestCount = async () => {
   return apiClient.get("/signup-requests/pending-count/");
 };
 
-export const approveSignupRequest = async (id) => {
-  return apiClient.post(`/signup-requests/${id}/approve/`, {});
+export const approveSignupRequest = async (id, data = {}) => {
+  return apiClient.post(`/signup-requests/${id}/approve/`, data);
 };
 
 export const rejectSignupRequest = async (id, data) => {
@@ -364,4 +364,108 @@ export const getVendorDashboard = async (queryParams = {}) => {
 export const getAmbulanceDashboard = async (queryParams = {}) => {
   const params = new URLSearchParams(queryParams);
   return apiClient.get(`/partner/ambulance-dashboard/?${params.toString()}`);
+};
+export const getMyAmbulance = async () => {
+  return apiClient.get("/ambulance/my-vehicle/");
+};
+
+export const updateAmbulanceLocation = async (data) => {
+  return apiClient.patch("/ambulance/location/", data);
+};
+
+export const setAmbulanceStatus = async (data) => {
+  return apiClient.patch("/ambulance/status/", data);
+};
+
+export const completeAmbulanceAssignment = async (alertId) => {
+  return apiClient.post(`/ambulance/assignments/${alertId}/complete/`, {});
+};
+
+export const getAmbulanceFleet = async () => {
+  return apiClient.get("/ambulance/fleet/");
+};
+
+export const getUnassignedAmbulances = async () => {
+  return apiClient.get("/ambulance/unassigned/");
+};
+
+export const createAmbulanceVehicle = async (data) => {
+  return apiClient.post("/ambulance/vehicles/", data);
+};
+
+export const updateAmbulanceVehicle = async (id, data) => {
+  return apiClient.patch(`/ambulance/vehicles/${id}/`, data);
+};
+
+export const deleteAmbulanceVehicle = async (id) => {
+  return apiClient.delete(`/ambulance/vehicles/${id}/`);
+};
+
+export const getAmbulanceCompanies = async () => {
+  return apiClient.get("/ambulance-companies/");
+};
+
+export const cancelSubscription = async (orderId) => {
+  return apiClient.post(`/subscriptions/${orderId}/cancel/`, {});
+};
+
+export const updateSubscriptionItems = async (orderId, data) => {
+  return apiClient.patch(`/subscriptions/${orderId}/items/`, data);
+};
+
+export const getMembership = async () => {
+  return apiClient.get("/membership/");
+};
+
+export const subscribeMembership = async (data) => {
+  return apiClient.post("/membership/subscribe/", data);
+};
+
+export const renewMembership = async () => {
+  return apiClient.post("/membership/renew/", {});
+};
+
+export const cancelMembership = async () => {
+  return apiClient.post("/membership/cancel/", {});
+};
+
+export const getPaymentLedger = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/ledger/transactions/?${params.toString()}`);
+};
+
+export const getVolunteerProfile = async () => {
+  return apiClient.get("/volunteer/me/");
+};
+
+export const getVolunteerAppearance = async () => {
+  return apiClient.get("/volunteer/appearance/");
+};
+
+export const getVolunteerStats = async () => {
+  return apiClient.get("/volunteer/stats/");
+};
+
+export const updateVolunteerLocation = async (data) => {
+  return apiClient.patch("/volunteer/location/", data);
+};
+
+export const setVolunteerAvailability = async (data) => {
+  return apiClient.patch("/volunteer/availability/", data);
+};
+
+export const respondToVolunteerAlert = async (id) => {
+  return apiClient.post(`/volunteer/alerts/${id}/respond/`, {});
+};
+
+export const redeemVolunteerReward = async (data) => {
+  return apiClient.post("/volunteer/redeem/", data);
+};
+
+export const applyVolunteerReward = async (data) => {
+  return apiClient.post("/volunteer/appearance/", data);
+};
+
+export const sendChatbotMessage = async (data) => {
+  return apiClient.post("/chatbot/message/", data);
 };

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\AmbulanceCompany;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class AmbulanceCompanyController extends Controller
@@ -12,6 +13,31 @@ class AmbulanceCompanyController extends Controller
     public function __construct()
     {
         $this->middleware('auth:sanctum');
+    }
+
+    /**
+     * List every ambulance company, for the admin fleet screen and the
+     * company picker when adding a vehicle.
+     */
+    public function index(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user->isAdmin() && !$user->isSuperAdmin()) {
+                return response()->json(['errors' => 'You are not authorized to view all companies.'], 403);
+            }
+
+            $companies = AmbulanceCompany::with('user:id,username,email')
+                ->withCount('vehicles')
+                ->orderBy('company_name')
+                ->get();
+
+            return response()->json(['data' => $companies], 200);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
+        }
     }
 
     public function show(string $userId): JsonResponse

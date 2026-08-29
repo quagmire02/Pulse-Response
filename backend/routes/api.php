@@ -11,6 +11,7 @@ use App\Http\Controllers\Medicine\MedicineController;
 use App\Http\Controllers\Shop\CartItemController;
 use App\Http\Controllers\Shop\OrderController;
 use App\Http\Controllers\Shop\PaymentController;
+use App\Http\Controllers\Shop\MembershipController;
 use App\Http\Controllers\Shop\DeliveryController;
 use App\Http\Controllers\Misc\NotificationController;
 use App\Http\Controllers\Misc\ConsultationController;
@@ -20,7 +21,10 @@ use App\Http\Controllers\Equipment\EquipmentRentalController;
 use App\Http\Controllers\Equipment\EquipmentFulfillmentController;
 use App\Http\Controllers\Misc\EmergencyAlertController;
 use App\Http\Controllers\Misc\ActivityLedgerController;
+use App\Http\Controllers\Misc\ChatbotController;
 use App\Http\Controllers\User\AmbulanceCompanyController;
+use App\Http\Controllers\User\AmbulanceVehicleController;
+use App\Http\Controllers\User\VolunteerController;
 use App\Http\Controllers\Partner\PartnerDashboardController;
 
 
@@ -140,6 +144,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/subscriptions', [OrderController::class, 'getSubscriptions'])
         ->name('api.getSubscriptions');
 
+    Route::post('/subscriptions/{order}/cancel', [OrderController::class, 'cancelSubscription'])
+        ->name('api.cancelSubscription');
+
+    Route::patch('/subscriptions/{order}/items', [OrderController::class, 'updateSubscriptionItems'])
+        ->name('api.updateSubscriptionItems');
+
     Route::get('/orders/{order}', [OrderController::class, 'show'])
         ->name('api.getOrder');
 
@@ -151,6 +161,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/orders/{order}', [OrderController::class, 'destroy'])
         ->name('api.deleteOrder');
+
+    // Premium membership billing and the accounting ledger
+    Route::get('/membership', [MembershipController::class, 'status'])
+        ->name('api.getMembership');
+    Route::post('/membership/subscribe', [MembershipController::class, 'subscribe'])
+        ->name('api.subscribeMembership');
+    Route::post('/membership/renew', [MembershipController::class, 'renew'])
+        ->name('api.renewMembership');
+    Route::post('/membership/cancel', [MembershipController::class, 'cancel'])
+        ->name('api.cancelMembership');
+    Route::get('/ledger/transactions', [MembershipController::class, 'ledger'])
+        ->name('api.getPaymentLedger');
 
     Route::get('/payments', [PaymentController::class, 'index'])
         ->name('api.getPayments');
@@ -262,6 +284,53 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('api.getPatientTimeline');
     Route::get('/ledger/patient/{userId}/summary', [ActivityLedgerController::class, 'patientSummary'])
         ->name('api.getPatientSummary');
+
+    // AI assistant. Rules run first, the model is only a fallback.
+    Route::post('/chatbot/message', [ChatbotController::class, 'message'])
+        ->name('api.chatbotMessage');
+
+    // Community volunteer emergency response
+    Route::get('/volunteer/me', [VolunteerController::class, 'me'])
+        ->name('api.getMyVolunteerProfile');
+    Route::get('/volunteer/appearance', [VolunteerController::class, 'appearance'])
+        ->name('api.getVolunteerAppearance');
+    Route::get('/volunteer/stats', [VolunteerController::class, 'stats'])
+        ->name('api.getVolunteerStats');
+    Route::patch('/volunteer/location', [VolunteerController::class, 'updateLocation'])
+        ->name('api.updateVolunteerLocation');
+    Route::patch('/volunteer/availability', [VolunteerController::class, 'setAvailability'])
+        ->name('api.setVolunteerAvailability');
+    Route::post('/volunteer/alerts/{volunteerAlert}/respond', [VolunteerController::class, 'respond'])
+        ->name('api.respondToVolunteerAlert');
+    Route::post('/volunteer/redeem', [VolunteerController::class, 'redeem'])
+        ->name('api.redeemVolunteerReward');
+    Route::post('/volunteer/appearance', [VolunteerController::class, 'applyReward'])
+        ->name('api.applyVolunteerReward');
+
+    // Ambulance driver tracking and dispatch
+    Route::get('/ambulance/my-vehicle', [AmbulanceVehicleController::class, 'myVehicle'])
+        ->name('api.getMyAmbulance');
+    Route::patch('/ambulance/location', [AmbulanceVehicleController::class, 'updateLocation'])
+        ->name('api.updateAmbulanceLocation');
+    Route::patch('/ambulance/status', [AmbulanceVehicleController::class, 'setStatus'])
+        ->name('api.setAmbulanceStatus');
+    Route::post('/ambulance/assignments/{alert}/complete', [AmbulanceVehicleController::class, 'completeAssignment'])
+        ->name('api.completeAmbulanceAssignment');
+    Route::get('/ambulance/fleet', [AmbulanceVehicleController::class, 'fleet'])
+        ->name('api.getAmbulanceFleet');
+
+    // Fleet management
+    Route::get('/ambulance/unassigned', [AmbulanceVehicleController::class, 'unassigned'])
+        ->name('api.getUnassignedAmbulances');
+    Route::post('/ambulance/vehicles', [AmbulanceVehicleController::class, 'store'])
+        ->name('api.createAmbulanceVehicle');
+    Route::patch('/ambulance/vehicles/{vehicle}', [AmbulanceVehicleController::class, 'update'])
+        ->name('api.updateAmbulanceVehicle');
+    Route::delete('/ambulance/vehicles/{vehicle}', [AmbulanceVehicleController::class, 'destroy'])
+        ->name('api.deleteAmbulanceVehicle');
+
+    Route::get('/ambulance-companies', [AmbulanceCompanyController::class, 'index'])
+        ->name('api.getAmbulanceCompanies');
 
     // Ambulance Company Profile
     Route::get('/ambulance-companies/{user}', [AmbulanceCompanyController::class, 'show'])

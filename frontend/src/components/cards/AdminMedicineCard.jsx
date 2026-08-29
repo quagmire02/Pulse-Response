@@ -2,13 +2,12 @@
 
 import { useState } from "react"
 import {RemoveButton} from "@/components/buttons/buttons"
+import { medicineImage } from "@/libs/images"
 import styles from "./AdminMedicineCard.module.css"
 
 export default function AdminMedicineCard({ medicine, onDelete, onClick }) {
   const [imageError, setImageError] = useState(false)
-  const imageUrl = medicine.image_url
-    ? `${process.env.NEXT_PUBLIC_BASE_URL}${medicine.image_url}`
-    : "/placeholder.svg?height=200&width=200&query=medicine";
+  const imageUrl = medicineImage(medicine);
 
   console.log(medicine.image_url)
 

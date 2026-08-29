@@ -1,5 +1,6 @@
 "use client"
 
+import { storageUrl } from "@/libs/images"
 import styles from "./OrderDetailCard.module.css"
 import Link from "next/link"
 import { useState, useEffect } from "react"
@@ -231,7 +232,7 @@ export default function OrderDetailCard({ order, isAdmin = false }) {
               <div key={prescription.id} className={styles.prescriptionItem}>
                 <span className={styles.prescriptionLabel}>Prescription {index + 1}:</span>
                 <span className={styles.prescriptionValue}>
-                  <Link href={`${process.env.NEXT_PUBLIC_BASE_URL}${prescription.image_url}`} target="_blank">
+                  <Link href={storageUrl(prescription.image_url)} target="_blank">
                     Image {index + 1}
                   </Link>
                 </span>
