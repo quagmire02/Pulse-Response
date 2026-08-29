@@ -11,6 +11,7 @@ import {
   getCustomerDashboardAction,
 } from "@/actions/partnerDashboardActions"
 import { isAdminRole } from "@/libs/roles"
+import { getVolunteerStatsAction } from "@/actions/volunteerActions"
 import { ShareBars, DonutChart, TrendBars, StatTile } from "@/components/charts/Charts"
 import FulfillmentQueue from "@/components/cards/FulfillmentQueue"
 import styles from "./page.module.css"
@@ -29,6 +30,7 @@ export default function AnalyticsDashboard() {
   const [vendorData, setVendorData] = useState(null)
   const [ambulanceData, setAmbulanceData] = useState(null)
   const [customerData, setCustomerData] = useState(null)
+  const [volunteerData, setVolunteerData] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -49,9 +51,14 @@ export default function AnalyticsDashboard() {
         const ambulanceCheck = await getAmbulanceCompanyAction(id)
         const isAmbulance = !ambulanceCheck.error
 
+        // Volunteers get their own contribution view.
+        const volunteerCheck = await getVolunteerStatsAction()
+        const isVolunteer = !volunteerCheck.error
+
         const views = []
         if (isVendor || isAdminUser) views.push({ value: "vendor", label: "Equipment supplier" })
         if (isAmbulance || isAdminUser) views.push({ value: "ambulance", label: "Ambulance operations" })
+        if (isVolunteer) views.push({ value: "volunteer", label: "My volunteering" })
         if (!isVendor && !isAmbulance) views.push({ value: "customer", label: "My spending" })
         if (isAdminUser) views.push({ value: "customer", label: "Customer spending" })
 
@@ -98,6 +105,13 @@ export default function AnalyticsDashboard() {
       } else {
         setCustomerData(result.data)
       }
+    } else if (view === "volunteer") {
+      const result = await getVolunteerStatsAction()
+      if (result.error) {
+        setErrorMsg(typeof result.error === "string" ? result.error : "Failed to load volunteer analytics.")
+      } else {
+        setVolunteerData(result.data)
+      }
     }
   }
 
@@ -109,7 +123,8 @@ export default function AnalyticsDashboard() {
     const alreadyLoaded =
       (value === "vendor" && vendorData) ||
       (value === "ambulance" && ambulanceData) ||
-      (value === "customer" && customerData)
+      (value === "customer" && customerData) ||
+      (value === "volunteer" && volunteerData)
 
     if (!alreadyLoaded) {
       setLoading(true)
@@ -134,7 +149,7 @@ export default function AnalyticsDashboard() {
     )
   }
 
-  if (errorMsg && !vendorData && !ambulanceData && !customerData) {
+  if (errorMsg && !vendorData && !ambulanceData && !customerData && !volunteerData) {
     return (
       <div className={styles.container}>
         <div className={styles.errorState}>
@@ -180,6 +195,8 @@ export default function AnalyticsDashboard() {
       {activeDashboard === "ambulance" && ambulanceData && <AmbulanceView data={ambulanceData} />}
 
       {activeDashboard === "customer" && customerData && <CustomerView data={customerData} />}
+
+      {activeDashboard === "volunteer" && volunteerData && <VolunteerView data={volunteerData} />}
     </div>
   )
 }
@@ -483,6 +500,89 @@ function CustomerView({ data }) {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Most Purchased Items</h3>
           <ShareBars data={data.top_items} valuePrefix="$" emptyMessage="No orders placed yet" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function VolunteerView({ data }) {
+  // Turn the two outcomes into shares so the same bar component can render them.
+  const attended = data.leaderboard ? data.incidents_helped : 0
+  const missed = Math.max(0, (data.alerts_received || 0) - attended)
+
+  const responseMix = [
+    { label: "Attended", value: attended, percentage: data.response_rate },
+    {
+      label: "Not attended",
+      value: missed,
+      percentage: Number((100 - (data.response_rate || 0)).toFixed(1)),
+    },
+  ]
+
+  return (
+    <div>
+      <div className={styles.statsGrid}>
+        <StatTile label="Incidents helped" value={data.incidents_helped} />
+        <StatTile label="Alerts received" value={data.alerts_received} />
+        <StatTile
+          label="Response rate"
+          value={`${data.response_rate}%`}
+          hint="How often an alert became an attendance"
+        />
+        <StatTile
+          label="Points balance"
+          value={data.points}
+          hint={`${data.lifetime_points} earned all time`}
+        />
+      </div>
+
+      <div className={styles.chartGrid}>
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Alert Response</h3>
+          <DonutChart data={responseMix} centerLabel="Alerts" />
+        </div>
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Contribution Breakdown</h3>
+          <ShareBars data={responseMix} emptyMessage="No alerts received yet" />
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Average Distance to Incidents</h3>
+        <p className={styles.noData}>
+          {data.average_distance_km} km across {data.alerts_received} alert(s).
+        </p>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Top Volunteers</h3>
+        <div className={styles.tableWrapper}>
+          {!data.leaderboard || data.leaderboard.length === 0 ? (
+            <p className={styles.noData}>No volunteer activity recorded yet.</p>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Volunteer</th>
+                  <th>Incidents</th>
+                  <th>Lifetime Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.leaderboard.map((row) => (
+                  <tr key={row.rank}>
+                    <td>{row.rank}</td>
+                    <td>{row.name}{row.is_you ? " (you)" : ""}</td>
+                    <td>{row.incidents}</td>
+                    <td>{row.points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
