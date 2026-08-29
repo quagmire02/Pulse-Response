@@ -8,7 +8,8 @@ import {
   deleteSignupRequest,
 } from "@/libs/api";
 
-const SIGNUP_ROLES = ["user", "pharmacist", "doctor", "vendor"];
+// Mirrors App\Models\SignupRequest::ROLES on the backend.
+const SIGNUP_ROLES = ["user", "pharmacist", "doctor", "vendor", "ambulance_company", "driver", "volunteer"];
 
 const actionError = (response) => {
   if (typeof response.error === "object") {
@@ -165,9 +166,9 @@ export const getPendingSignupRequestCountAction = async () => {
   }
 };
 
-export const approveSignupRequestAction = async (id) => {
+export const approveSignupRequestAction = async (id, vehicleId = null) => {
   try {
-    const response = await approveSignupRequest(id);
+    const response = await approveSignupRequest(id, vehicleId ? { vehicle_id: vehicleId } : {});
 
     if (response.error) {
       return { error: response.error };

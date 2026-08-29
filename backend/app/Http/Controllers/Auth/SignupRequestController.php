@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterSignupRequest;
+use App\Models\AmbulanceCompany;
+use App\Models\AmbulanceVehicle;
 use App\Models\Cart;
 use App\Models\Notification;
 use App\Models\Pharmacist;
 use App\Models\SignupRequest;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Models\Volunteer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -194,13 +197,18 @@ class SignupRequestController extends Controller
      * @OA\Response(response=500, description="Internal Server Error", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
      * )
      */
-    public function approve(string $signupRequest): JsonResponse
+    public function approve(Request $request, string $signupRequest): JsonResponse
     {
         if ($denied = $this->ensureAdmin()) {
             return $denied;
         }
 
         try {
+            // Driver approvals carry the ambulance the admin is assigning them to.
+            $validated = $request->validate([
+                'vehicle_id' => ['nullable', 'exists:ambulance_vehicles,id'],
+            ]);
+
             $found = SignupRequest::find($signupRequest);
 
             if (!$found) {
@@ -231,7 +239,34 @@ class SignupRequestController extends Controller
                 ], 409);
             }
 
-            DB::transaction(function () use ($found) {
+            if ($found->needsAmbulanceCompanyProfile()
+                && AmbulanceCompany::where('license_num', $found->license_num)->exists()) {
+                return response()->json([
+                    'errors' => 'This ambulance company license number is already registered.',
+                ], 409);
+            }
+
+            // A driver is only useful once attached to an ambulance, so the admin
+            // must pick a free vehicle at approval time.
+            $vehicle = null;
+
+            if ($found->isDriver()) {
+                if (empty($validated['vehicle_id'])) {
+                    return response()->json([
+                        'errors' => 'Select an ambulance to assign this driver to.',
+                    ], 422);
+                }
+
+                $vehicle = AmbulanceVehicle::find($validated['vehicle_id']);
+
+                if ($vehicle->driver_user_id) {
+                    return response()->json([
+                        'errors' => 'That ambulance already has a driver assigned.',
+                    ], 409);
+                }
+            }
+
+            DB::transaction(function () use ($found, $vehicle) {
                 $user = User::create([
                     'first_name' => $found->first_name,
                     'last_name' => $found->last_name,
@@ -265,6 +300,30 @@ class SignupRequestController extends Controller
                         'description' => $found->description,
                         'contact_phone' => $found->contact_phone,
                     ]);
+                }
+
+                if ($found->needsVolunteerProfile()) {
+                    Volunteer::create([
+                        'user_id' => $user->id,
+                        'skills' => $found->bio,
+                        'is_available' => false,
+                    ]);
+                }
+
+                if ($found->needsAmbulanceCompanyProfile()) {
+                    AmbulanceCompany::create([
+                        'user_id' => $user->id,
+                        'company_name' => $found->company_name,
+                        'license_num' => $found->license_num,
+                        'description' => $found->description,
+                        'contact_phone' => $found->contact_phone,
+                    ]);
+                }
+
+                // Linking the vehicle here is what makes the driver console and
+                // the dispatcher work for this account.
+                if ($vehicle) {
+                    $vehicle->update(['driver_user_id' => $user->id]);
                 }
 
                 Notification::create([

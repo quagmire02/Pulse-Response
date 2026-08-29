@@ -3,7 +3,7 @@
 import { useState } from "react"
 import {SignupButton} from "@/components/buttons/buttons"
 import { createSignupRequestAction } from "@/actions/signupRequestActions"
-import { SIGNUP_ROLES, PHARMACIST_ROLES } from "@/libs/roles"
+import { SIGNUP_ROLES, PHARMACIST_ROLES, COMPANY_ROLES, LICENSED_ROLES } from "@/libs/roles"
 import styles from "./SignupForm.module.css"
 
 
@@ -14,8 +14,8 @@ export default function SignupForm() {
   const [role, setRole] = useState("user")
 
   const needsPharmacistFields = PHARMACIST_ROLES.includes(role)
-  const needsVendorFields = role === "vendor"
-  const needsLicense = needsPharmacistFields || needsVendorFields
+  const needsCompanyFields = COMPANY_ROLES.includes(role)
+  const needsLicense = LICENSED_ROLES.includes(role)
   const selectedRole = SIGNUP_ROLES.find((option) => option.value === role)
 
   const handleSubmit = async (formData) => {
@@ -182,7 +182,23 @@ export default function SignupForm() {
         </>
       )}
 
-      {needsVendorFields && (
+      {role === "volunteer" && (
+        <div className={styles.formGroup}>
+          <label htmlFor="bio" className={styles.label}>
+            First aid training or skills
+          </label>
+          <textarea
+            id="bio"
+            name="bio"
+            rows={3}
+            placeholder="e.g. certified in CPR, nursing student, trained first responder"
+            className={`${styles.textarea} ${errors.bio ? styles.inputError : ""}`}
+          />
+          {errors.bio && <span className={styles.error}>{errors.bio}</span>}
+        </div>
+      )}
+
+      {needsCompanyFields && (
         <>
           <div className={styles.formGroup}>
             <label htmlFor="company_name" className={styles.label}>

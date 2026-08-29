@@ -132,8 +132,8 @@ function FormContent({ cartItems, cartTotals, calculateTotal, success, error, su
   const medicineSubtotal = Number(cartTotals?.medicines ?? 0);
 
   // The subscription discount applies to medicines only; equipment is one-off.
-  const discountRate = subscribeType === "weekly" ? 0.05 : subscribeType === "monthly" ? 0.10 : 0;
-  const discountAmount = medicineSubtotal * discountRate;
+  // No discount on the first order; the 10% loyalty reward starts at the first renewal.
+  const discountAmount = 0;
   const deliveryCharge = deliveryPrices[deliveryType];
 
   const getNextDeliveryDateString = () => {
@@ -206,7 +206,10 @@ function FormContent({ cartItems, cartTotals, calculateTotal, success, error, su
             fontSize: "0.9rem",
             borderLeft: "4px solid #2e7d32"
           }}>
-            🎉 <strong>Subscribe & Save Active!</strong> Your next automatic delivery is calculated for <strong>{nextDeliveryDateStr}</strong>.
+            <strong>Subscription active.</strong> Your next automatic delivery is scheduled for{" "}
+            <strong>{nextDeliveryDateStr}</strong>, and every renewal from then on gets{" "}
+            <strong>10% off the medicines</strong>. You can edit the items or unsubscribe from the
+            Subscriptions page, up to 7 days before a delivery.
           </div>
         )}
       </div>
@@ -299,8 +302,8 @@ function FormContent({ cartItems, cartTotals, calculateTotal, success, error, su
           >
             <option value="">Select Subscription</option>
             <option value="none">No Subscription</option>
-            <option value="weekly">Weekly (Save 5%)</option>
-            <option value="monthly">Monthly (Save 10%)</option>
+            <option value="weekly">Weekly (10% off every renewal)</option>
+            <option value="monthly">Monthly (10% off every renewal)</option>
           </select>
         </div>
         {hasMedicines && (
@@ -380,8 +383,8 @@ export default function CheckoutPage() {
     const medicineSubtotal = Number(cartTotals?.medicines ?? 0);
 
     // Mirrors the backend: the subscription discount only touches medicines.
-    const discountRate = sub_type === "weekly" ? 0.05 : sub_type === "monthly" ? 0.10 : 0;
-    const discountAmount = medicineSubtotal * discountRate;
+    // Mirrors Order::getSubscriptionDiscountRate(): nothing off the first order.
+    const discountAmount = 0;
     let amount = subtotal - discountAmount;
 
     if (delivery_type === "rapid") {

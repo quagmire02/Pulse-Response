@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getSubscriptionsAction } from "@/actions/subscriptionActions";
 import Pagination from "@/components/paginations/Pagination";
+import SubscriptionManager from "@/components/cards/SubscriptionManager";
 import styles from "./page.module.css";
 
 function SubscriptionsContent() {
@@ -160,8 +161,8 @@ function SubscriptionsContent() {
                         <div className={styles.detailRow}>
                           <span className={styles.detailLabel}>Discount Saved:</span>
                           <span className={styles.discountValue}>
-                            -${Number(sub.discount_amount).toFixed(2)} (
-                            {sub.subscribe_type === "weekly" ? "5%" : "10%"})
+                            -${Number(sub.discount_amount).toFixed(2)}
+                            {Number(sub.discount_amount) > 0 ? " (10% renewal)" : " (applies from your first renewal)"}
                           </span>
                         </div>
                         <div className={styles.detailRow}>
@@ -206,6 +207,11 @@ function SubscriptionsContent() {
                         </div>
                       </div>
                     )}
+
+                    <SubscriptionManager
+                      subscription={sub}
+                      onChanged={() => loadSubscriptions()}
+                    />
                   </div>
 
                   <div className={styles.cardFooter}>

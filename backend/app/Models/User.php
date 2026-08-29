@@ -35,6 +35,11 @@ class User extends Authenticatable
         'is_admin',
         'is_super_admin',
         'role',
+        'is_premium',
+        'premium_expires_at',
+        'membership_auto_renew',
+        'stripe_customer_id',
+        'stripe_payment_method_id',
     ];
 
     /**
@@ -58,6 +63,9 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'is_admin' => 'boolean',
             'is_super_admin' => 'boolean',
+            'is_premium' => 'boolean',
+            'membership_auto_renew' => 'boolean',
+            'premium_expires_at' => 'datetime',
         ];
     }
 
@@ -118,6 +126,21 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->is_admin;
+    }
+
+    /**
+     * Premium access is only real while the paid period has not lapsed.
+     */
+    public function hasActivePremium(): bool
+    {
+        return $this->is_premium
+            && $this->premium_expires_at
+            && $this->premium_expires_at->isFuture();
+    }
+
+    public function paymentTransactions(): HasMany
+    {
+        return $this->hasMany(PaymentTransaction::class);
     }
 
     public function isSuperAdmin(): bool

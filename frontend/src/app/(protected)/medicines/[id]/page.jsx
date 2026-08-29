@@ -6,6 +6,7 @@ import { getMedicineAction, getMedicineAlternativesAction } from "@/actions/medi
 import { getUserRoleAction } from "@/actions/authActions"
 import { isCustomerRole } from "@/libs/roles"
 import MedicineDetailCard from "@/components/cards/MedicineDetailCard"
+import { storageUrl } from "@/libs/images"
 import styles from "./page.module.css"
 
 export default function MedicineDetailPage() {
@@ -120,7 +121,7 @@ export default function MedicineDetailPage() {
                 >
                   {alt.image_url ? (
                     <img
-                      src={`${process.env.NEXT_PUBLIC_BASE_URL}${alt.image_url}`}
+                      src={storageUrl(alt.image_url)}
                       alt={alt.name}
                       className={styles.altImage}
                     />

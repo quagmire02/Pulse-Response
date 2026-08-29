@@ -60,6 +60,13 @@ export default function AdminDashboard() {
       route: "/pharmacist",
     },
     {
+      id: 6,
+      title: "Ambulance Fleet",
+      description: "Register ambulances and track drivers live",
+      icon: "🚑",
+      route: "/admin-dashboard/ambulances",
+    },
+    {
       id: 5,
       title: "Manage Vendors",
       description: "Create and manage vendor accounts",

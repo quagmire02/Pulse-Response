@@ -9,6 +9,7 @@ import {
   deleteSignupRequestAction,
 } from "@/actions/signupRequestActions"
 import { SIGNUP_ROLES } from "@/libs/roles"
+import { getUnassignedAmbulancesAction } from "@/actions/ambulanceActions"
 import SignupRequestCard from "@/components/cards/SignupRequestCard"
 import Pagination from "@/components/paginations/Pagination"
 import styles from "./page.module.css"
@@ -25,6 +26,8 @@ export default function AdminSignupRequestsPage() {
   const [message, setMessage] = useState("")
   const [actionId, setActionId] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  // Free ambulances offered when approving a driver account.
+  const [vehicles, setVehicles] = useState([])
 
   const [status, setStatus] = useState("pending")
   const [role, setRole] = useState("")
@@ -41,7 +44,11 @@ export default function AdminSignupRequestsPage() {
       if (role) params.role = role
       if (search) params.search = search
 
-      const result = await getSignupRequestsAction(params)
+      const [result, vehicleResult] = await Promise.all([
+        getSignupRequestsAction(params),
+        getUnassignedAmbulancesAction(),
+      ])
+
       if (cancelled) return
       if (result.error) {
         setError(typeof result.error === "object" ? JSON.stringify(result.error) : result.error)
@@ -49,6 +56,8 @@ export default function AdminSignupRequestsPage() {
         setRequests(result.data || [])
         setPagination(result.pagination)
       }
+
+      setVehicles(vehicleResult.error ? [] : vehicleResult.data || [])
       setLoading(false)
     }
     fetch()
@@ -71,7 +80,7 @@ export default function AdminSignupRequestsPage() {
     }
   }
 
-  const handleApprove = (id) => runAction(id, () => approveSignupRequestAction(id))
+  const handleApprove = (id, vehicleId) => runAction(id, () => approveSignupRequestAction(id, vehicleId))
 
   const handleReject = (id, reason) => runAction(id, () => rejectSignupRequestAction(id, reason))
 
@@ -140,7 +149,8 @@ export default function AdminSignupRequestsPage() {
                 key={request.id}
                 request={request}
                 busy={actionId === request.id}
-                onApprove={() => handleApprove(request.id)}
+                vehicles={vehicles}
+                onApprove={(vehicleId) => handleApprove(request.id, vehicleId)}
                 onReject={(reason) => handleReject(request.id, reason)}
                 onDelete={() => handleDelete(request.id)}
               />

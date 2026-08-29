@@ -12,6 +12,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\EquipmentFulfillment;
 use App\Models\EquipmentRental;
+use App\Models\Medicine;
 use App\Models\Payment;
 use App\Models\Delivery;
 use App\Models\Notification;
@@ -610,7 +611,7 @@ class OrderController extends Controller
                         $medicine->save();
                     }
 
-                    // Equipment goes back on the shelf.
+                    // Equipment goes back on the shelf too.
                     if ($orderItem->isEquipment() && $orderItem->equipment) {
                         $equipment = $orderItem->equipment;
                         $equipment->quantity += $orderItem->quantity;
@@ -686,7 +687,8 @@ class OrderController extends Controller
                     foreach ($renewableItems as $orderItem) {
                         $subtotal += $orderItem->quantity * $orderItem->medicine->price;
                     }
-                    $discountRate = Order::getSubscriptionDiscountRate($order->subscribe_type);
+                    // The loyalty discount lives here, on renewals only.
+                    $discountRate = Order::getRenewalDiscountRate($order->subscribe_type);
                     $discountAmount = round($subtotal * $discountRate, 2);
                     $totalAmount = $subtotal - $discountAmount;
 
@@ -859,7 +861,210 @@ class OrderController extends Controller
     }
 
 
-    
+    /**
+     * Stop a subscription from renewing.
+     *
+     * Allowed only while the next delivery is still at least a week away. The
+     * order itself is untouched, so anything already scheduled still ships;
+     * setting subscribe_type to none is what stops the renewal in update().
+     */
+    public function cancelSubscription(string $order): JsonResponse
+    {
+        try {
+            $found = Order::find($order);
+
+            if (!$found) {
+                return response()->json(["errors" => "Order not found."], 404);
+            }
+
+            if ($found->user_id !== Auth::user()->id && !Auth::user()->isAdmin()) {
+                return response()->json(["errors" => "You are not authorized to change this subscription."], 403);
+            }
+
+            if (!$found->isSubscription()) {
+                return response()->json(["errors" => "This order is not on a subscription."], 400);
+            }
+
+            if (!$found->canCancelSubscription()) {
+                $days = $found->daysUntilNextDelivery();
+
+                return response()->json([
+                    "errors" => "Subscriptions must be cancelled at least "
+                        . Order::CANCELLATION_NOTICE_DAYS . " days before the next delivery."
+                        . ($days !== null ? " Your next delivery is in {$days} day(s)." : ''),
+                ], 422);
+            }
+
+            $found->update([
+                'subscribe_type' => 'none',
+                'next_delivery_date' => null,
+                'unsubscribed_at' => now(),
+            ]);
+
+            $this->createNotification(
+                $found->user_id,
+                'Subscription cancelled',
+                "Your subscription on order {$found->id} has been cancelled. No further deliveries will be scheduled."
+            );
+
+            return response()->json(['success' => 'Subscription cancelled.'], 200);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json(["errors" => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Replace the medicines that go out on the next delivery.
+     *
+     * Editing happens on the pending order at the head of the renewal chain,
+     * never on a delivered one, so order history stays intact. Stock was
+     * already reserved when the order was created, so the difference between
+     * the old and new lines is returned to or taken from the shelf here.
+     */
+    public function updateSubscriptionItems(Request $request, string $order): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'items' => ['present', 'array'],
+                'items.*.medicine_id' => ['required', 'exists:medicines,id'],
+                'items.*.quantity' => ['required', 'integer', 'min:1'],
+            ]);
+
+            $found = Order::with('orderItems.medicine')->find($order);
+
+            if (!$found) {
+                return response()->json(["errors" => "Order not found."], 404);
+            }
+
+            if ($found->user_id !== Auth::user()->id && !Auth::user()->isAdmin()) {
+                return response()->json(["errors" => "You are not authorized to change this subscription."], 403);
+            }
+
+            if (!$found->isSubscription()) {
+                return response()->json(["errors" => "This order is not on a subscription."], 400);
+            }
+
+            if ($found->order_status !== 'pending') {
+                return response()->json([
+                    "errors" => "Only a pending delivery can be edited. This one is already " . $found->order_status . ".",
+                ], 409);
+            }
+
+            if (empty($validated['items'])) {
+                return response()->json([
+                    "errors" => "A subscription needs at least one medicine. Cancel it instead if you want to stop.",
+                ], 422);
+            }
+
+            // Quantities currently held by this order, per medicine.
+            $existing = [];
+            foreach ($found->orderItems as $item) {
+                if ($item->isMedicine() && $item->medicine_id) {
+                    $existing[$item->medicine_id] = ($existing[$item->medicine_id] ?? 0) + $item->quantity;
+                }
+            }
+
+            $requested = [];
+            foreach ($validated['items'] as $line) {
+                $requested[$line['medicine_id']] = ($requested[$line['medicine_id']] ?? 0) + $line['quantity'];
+            }
+
+            // Check every increase against the shelf before writing anything.
+            foreach ($requested as $medicineId => $quantity) {
+                $delta = $quantity - ($existing[$medicineId] ?? 0);
+
+                if ($delta > 0) {
+                    $medicine = Medicine::find($medicineId);
+
+                    if ($medicine->stock < $delta) {
+                        return response()->json([
+                            "errors" => "Only {$medicine->stock} more unit(s) of {$medicine->name} are available.",
+                        ], 422);
+                    }
+                }
+            }
+
+            DB::transaction(function () use ($found, $existing, $requested) {
+                // Return stock for everything that was removed or reduced.
+                foreach ($existing as $medicineId => $quantity) {
+                    $delta = $quantity - ($requested[$medicineId] ?? 0);
+
+                    if ($delta > 0) {
+                        Medicine::where('id', $medicineId)->increment('stock', $delta);
+                    }
+                }
+
+                // Reserve stock for everything added or increased.
+                foreach ($requested as $medicineId => $quantity) {
+                    $delta = $quantity - ($existing[$medicineId] ?? 0);
+
+                    if ($delta > 0) {
+                        Medicine::where('id', $medicineId)->decrement('stock', $delta);
+                    }
+                }
+
+                // Swap the medicine lines; equipment lines on the same order stay put.
+                $found->orderItems()
+                    ->where('item_type', OrderItem::TYPE_MEDICINE)
+                    ->delete();
+
+                $subtotal = 0;
+
+                foreach ($requested as $medicineId => $quantity) {
+                    $medicine = Medicine::find($medicineId);
+                    $lineTotal = round($medicine->price * $quantity, 2);
+                    $subtotal += $lineTotal;
+
+                    OrderItem::create([
+                        'order_id' => $found->id,
+                        'item_type' => OrderItem::TYPE_MEDICINE,
+                        'medicine_id' => $medicineId,
+                        'quantity' => $quantity,
+                        'unit_price' => $medicine->price,
+                        'line_total' => $lineTotal,
+                    ]);
+                }
+
+                // Equipment already on this order keeps its charge.
+                $equipmentTotal = $found->orderItems()
+                    ->where('item_type', '!=', OrderItem::TYPE_MEDICINE)
+                    ->sum('line_total');
+
+                $discountRate = $found->is_subscription_renewal
+                    ? Order::getRenewalDiscountRate($found->subscribe_type)
+                    : Order::getSubscriptionDiscountRate($found->subscribe_type);
+
+                $discountAmount = round($subtotal * $discountRate, 2);
+
+                $found->update([
+                    'total_amount' => round($subtotal + $equipmentTotal - $discountAmount, 2),
+                    'discount_amount' => $discountAmount,
+                ]);
+            });
+
+            $this->createNotification(
+                $found->user_id,
+                'Subscription updated',
+                "The medicines on your next delivery for order {$found->id} have been updated."
+            );
+
+            return response()->json([
+                'success' => 'Subscription items updated.',
+                'data' => $found->fresh(['orderItems.medicine']),
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json(["errors" => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get active subscriptions for the current user.
+     * Returns orders where subscribe_type is weekly or monthly and order is not canceled.
+     */
     public function getSubscriptions()
     {
         try {
@@ -875,7 +1080,7 @@ class OrderController extends Controller
                 $query->where('user_id', Auth::user()->id);
             }
 
-            
+            // Only show active subscriptions (not canceled, not renewals — show originals)
             $subscriptions = $query->where('order_status', '!=', 'canceled')
                                    ->orderByDesc('order_date')
                                    ->orderByDesc('id')

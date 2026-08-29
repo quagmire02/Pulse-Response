@@ -20,7 +20,7 @@ class SignupRequest extends Model
      *
      * @var array<int, string>
      */
-    public const ROLES = ['user', 'pharmacist', 'doctor', 'vendor'];
+    public const ROLES = ['user', 'pharmacist', 'doctor', 'vendor', 'ambulance_company', 'driver', 'volunteer'];
 
     /**
      * Roles that get a pharmacists row created for them on approval.
@@ -72,6 +72,24 @@ class SignupRequest extends Model
     public function needsPharmacistProfile(): bool
     {
         return in_array($this->role, self::PHARMACIST_ROLES, true);
+    }
+
+    public function needsAmbulanceCompanyProfile(): bool
+    {
+        return $this->role === 'ambulance_company';
+    }
+
+    /**
+     * Drivers are linked to an existing vehicle by the reviewing admin.
+     */
+    public function isDriver(): bool
+    {
+        return $this->role === 'driver';
+    }
+
+    public function needsVolunteerProfile(): bool
+    {
+        return $this->role === 'volunteer';
     }
 
     public function needsVendorProfile(): bool

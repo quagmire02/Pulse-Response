@@ -27,25 +27,72 @@ class Order extends Model
         'contact_phone',
         'delivery_notes',
         'preferred_handover_date',
+        'unsubscribed_at',
     ];
 
     protected $casts = [
         'order_date' => 'date',
         'next_delivery_date' => 'date',
         'preferred_handover_date' => 'date',
+        'unsubscribed_at' => 'datetime',
         'is_subscription_renewal' => 'boolean',
     ];
 
+    /** Loyalty discount applied to every automatic renewal. */
+    public const RENEWAL_DISCOUNT_RATE = 0.10;
+
+    /** How far ahead of the next delivery a subscription may be cancelled. */
+    public const CANCELLATION_NOTICE_DAYS = 7;
+
     /**
-     * Calculate subscription discount rate.
+     * Discount on the very first order of a subscription.
+     *
+     * Deliberately zero. Paying the reward up front let a shopper subscribe,
+     * take the discount and immediately unsubscribe, so the discount now only
+     * arrives once they actually stay subscribed through a renewal.
      */
     public static function getSubscriptionDiscountRate(string $subscribeType): float
     {
-        return match ($subscribeType) {
-            'weekly' => 0.05,   // 5% discount
-            'monthly' => 0.10,  // 10% discount
-            default => 0,
-        };
+        return 0.0;
+    }
+
+    /**
+     * Discount on an automatic renewal. This is the loyalty reward.
+     */
+    public static function getRenewalDiscountRate(string $subscribeType): float
+    {
+        return in_array($subscribeType, ['weekly', 'monthly'], true)
+            ? self::RENEWAL_DISCOUNT_RATE
+            : 0.0;
+    }
+
+    public function isSubscription(): bool
+    {
+        return in_array($this->subscribe_type, ['weekly', 'monthly'], true);
+    }
+
+    /**
+     * A subscription may only be cancelled while the next delivery is still at
+     * least CANCELLATION_NOTICE_DAYS away, so an imminent shipment is not
+     * pulled out from under the pharmacy.
+     */
+    public function canCancelSubscription(): bool
+    {
+        if (!$this->isSubscription() || !$this->next_delivery_date) {
+            return false;
+        }
+
+        return now()->startOfDay()->diffInDays($this->next_delivery_date, false)
+            >= self::CANCELLATION_NOTICE_DAYS;
+    }
+
+    public function daysUntilNextDelivery(): ?int
+    {
+        if (!$this->next_delivery_date) {
+            return null;
+        }
+
+        return (int) now()->startOfDay()->diffInDays($this->next_delivery_date, false);
     }
 
     /**

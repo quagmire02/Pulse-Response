@@ -4,19 +4,22 @@ import { useState } from "react"
 import { roleLabel } from "@/libs/roles"
 import styles from "./SignupRequestCard.module.css"
 
-const ROLE_ICONS = {
-  user: "🧑",
-  pharmacist: "💊",
-  doctor: "👨‍⚕️",
-  vendor: "🏪",
-}
-
-export default function SignupRequestCard({ request, busy, onApprove, onReject, onDelete }) {
+export default function SignupRequestCard({
+  request,
+  busy,
+  vehicles = [],
+  onApprove,
+  onReject,
+  onDelete,
+}) {
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [reason, setReason] = useState("")
+  const [vehicleId, setVehicleId] = useState("")
 
   const fullName = `${request.first_name || ""} ${request.last_name || ""}`.trim() || request.username
   const isPending = request.status === "pending"
+  // A driver account is only usable once it is attached to an ambulance.
+  const needsVehicle = request.role === "driver"
 
   const handleReject = () => {
     onReject(reason)
@@ -28,7 +31,7 @@ export default function SignupRequestCard({ request, busy, onApprove, onReject, 
     <div className={styles.card}>
       <div className={styles.header}>
         <div className={styles.iconContainer}>
-          <span className={styles.icon}>{ROLE_ICONS[request.role] || "🧑"}</span>
+          <span className={styles.icon}>{roleLabel(request.role).charAt(0)}</span>
         </div>
         <div className={styles.titleInfo}>
           <h3 className={styles.name}>{fullName}</h3>
@@ -103,14 +106,48 @@ export default function SignupRequestCard({ request, busy, onApprove, onReject, 
             </div>
           </div>
         ) : (
-          <div className={styles.actions}>
-            <button className={styles.rejectBtn} onClick={() => setShowRejectForm(true)} disabled={busy}>
-              Reject
-            </button>
-            <button className={styles.approveBtn} onClick={onApprove} disabled={busy}>
-              {busy ? "Approving..." : "Approve"}
-            </button>
-          </div>
+          <>
+            {needsVehicle && (
+              <div className={styles.assignBlock}>
+                <label className={styles.assignLabel} htmlFor={`vehicle-${request.id}`}>
+                  Assign to ambulance
+                </label>
+                <select
+                  id={`vehicle-${request.id}`}
+                  className={styles.select}
+                  value={vehicleId}
+                  onChange={(e) => setVehicleId(e.target.value)}
+                  disabled={busy || vehicles.length === 0}
+                >
+                  <option value="">Select an ambulance</option>
+                  {vehicles.map((vehicle) => (
+                    <option key={vehicle.id} value={vehicle.id}>
+                      {vehicle.vehicle_number} — {vehicle.model}
+                      {vehicle.company?.company_name ? ` (${vehicle.company.company_name})` : ""}
+                    </option>
+                  ))}
+                </select>
+                {vehicles.length === 0 && (
+                  <span className={styles.assignHint}>
+                    No free ambulances. Add one under Ambulance Fleet first.
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className={styles.actions}>
+              <button className={styles.rejectBtn} onClick={() => setShowRejectForm(true)} disabled={busy}>
+                Reject
+              </button>
+              <button
+                className={styles.approveBtn}
+                onClick={() => onApprove(needsVehicle ? vehicleId : null)}
+                disabled={busy || (needsVehicle && !vehicleId)}
+              >
+                {busy ? "Approving..." : "Approve"}
+              </button>
+            </div>
+          </>
         )
       ) : (
         <div className={styles.actions}>

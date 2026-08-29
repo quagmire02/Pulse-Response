@@ -1,5 +1,9 @@
 "use server";
-import { getSubscriptions } from "@/libs/api";
+import {
+  getSubscriptions,
+  cancelSubscription,
+  updateSubscriptionItems,
+} from "@/libs/api";
 
 export const getSubscriptionsAction = async (queryParams = {}) => {
   try {
@@ -21,5 +25,44 @@ export const getSubscriptionsAction = async (queryParams = {}) => {
   } catch (error) {
     console.error(error);
     return { error: error.message || "An unexpected error occurred." };
+  }
+};
+
+/**
+ * Stop future renewals. The backend refuses if the next delivery is less than
+ * a week away.
+ */
+export const cancelSubscriptionAction = async (orderId) => {
+  try {
+    const response = await cancelSubscription(orderId);
+
+    if (response.error) {
+      return { error: response.error };
+    }
+
+    return { success: response.success };
+  } catch (error) {
+    console.error(error);
+    return { error: error.message || "Failed to cancel the subscription." };
+  }
+};
+
+/**
+ * Replace the medicines on the next delivery.
+ *
+ * @param {Array<{medicine_id: number, quantity: number}>} items
+ */
+export const updateSubscriptionItemsAction = async (orderId, items) => {
+  try {
+    const response = await updateSubscriptionItems(orderId, { items });
+
+    if (response.error) {
+      return { error: response.error };
+    }
+
+    return { success: response.success, data: response.data };
+  } catch (error) {
+    console.error(error);
+    return { error: error.message || "Failed to update the subscription." };
   }
 };

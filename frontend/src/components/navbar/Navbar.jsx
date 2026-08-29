@@ -6,7 +6,8 @@ import { LogoutButton } from "@/components/buttons/buttons"
 import { getUserIdAction, getUserRoleAction } from "@/actions/authActions"
 import { getPharmacistAction } from "@/actions/pharmacistActions"
 import { getVendorAction } from "@/actions/vendorActions"
-import { getAmbulanceCompanyAction } from "@/actions/ambulanceActions"
+import { getAmbulanceCompanyAction, getMyAmbulanceAction } from "@/actions/ambulanceActions"
+import { getVolunteerProfileAction } from "@/actions/volunteerActions"
 import { isAdminRole, isCustomerRole } from "@/libs/roles"
 import styles from "./Navbar.module.css"
 
@@ -17,6 +18,8 @@ export default function Navbar() {
   const [isDoctor, setIsDoctor] = useState(false)
   const [isVendor, setIsVendor] = useState(false)
   const [isAmbulanceCompany, setIsAmbulanceCompany] = useState(false)
+  const [isDriver, setIsDriver] = useState(false)
+  const [isVolunteer, setIsVolunteer] = useState(false)
   const router = useRouter()
 
   const isAdmin = isAdminRole(userRole)
@@ -38,6 +41,13 @@ export default function Navbar() {
 
         const ambulanceResult = await getAmbulanceCompanyAction(id)
         setIsAmbulanceCompany(!ambulanceResult.error)
+
+        // Only drivers assigned to a vehicle get the console link.
+        const vehicleResult = await getMyAmbulanceAction()
+        setIsDriver(!vehicleResult.error)
+
+        const volunteerResult = await getVolunteerProfileAction()
+        setIsVolunteer(!volunteerResult.error)
       }
     }
     fetchUserData()
@@ -102,11 +112,14 @@ export default function Navbar() {
             Equipments
           </button>
           <button className={styles.menuItem} onClick={() => handleNavigation("/pharmacist")}>
-            Medical Consultants
+            Pharmacists
           </button>
 
           {(isCustomer || isAdmin) && (
             <>
+              <button className={styles.menuItem} onClick={() => handleNavigation("/assistant")}>
+                AI Assistance
+              </button>
               <button className={styles.menuItem} onClick={() => handleNavigation("/cart")}>
                 Cart
               </button>
@@ -115,6 +128,9 @@ export default function Navbar() {
               </button>
               <button className={styles.menuItem} onClick={() => handleNavigation("/subscriptions")}>
                 Subscriptions
+              </button>
+              <button className={styles.menuItem} onClick={() => handleNavigation("/membership")}>
+                Card Details
               </button>
               <button className={styles.menuItem} onClick={() => handleNavigation("/payment")}>
                 Payment History
@@ -141,6 +157,18 @@ export default function Navbar() {
           {isVendor && (
             <button className={styles.menuItem} onClick={() => handleNavigation(`/vendor/${userId}`)}>
               My Vendor Profile
+            </button>
+          )}
+
+          {isVolunteer && (
+            <button className={styles.menuItem} onClick={() => handleNavigation("/volunteer")}>
+              Volunteer Console
+            </button>
+          )}
+
+          {isDriver && (
+            <button className={styles.menuItem} onClick={() => handleNavigation("/driver")}>
+              Driver Console
             </button>
           )}
 

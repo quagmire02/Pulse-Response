@@ -3,14 +3,13 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import {AddToCartButton, OrderNowButton} from "@/components/buttons/buttons"
+import { medicineImage } from "@/libs/images"
 import styles from "./MedicineCard.module.css"
 
 export default function MedicineCard({ medicine, canOrder = false }) {
   const router = useRouter()
   const [imageError, setImageError] = useState(false)
-  const imageUrl = medicine.image_url
-    ? `${process.env.NEXT_PUBLIC_BASE_URL}${medicine.image_url}`
-    : "/placeholder.svg?height=200&width=200&query=medicine";
+  const imageUrl = medicineImage(medicine);
 
   const handleCardClick = (e) => {
     if (e.target.closest("button")) {
