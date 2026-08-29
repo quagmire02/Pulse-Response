@@ -35,6 +35,9 @@ export default function HistoryPage() {
   const [showEmergencyModal, setShowEmergencyModal] = useState(false)
   const [alertType, setAlertType] = useState("general_ambulance")
   const [location, setLocation] = useState("")
+  // Coordinates are what let the backend pick the nearest ambulance; the typed
+  // address alone cannot be routed against.
+  const [coords, setCoords] = useState(null)
   const [notes, setNotes] = useState("")
   const [emergencyLoading, setEmergencyLoading] = useState(false)
   const [emergencySuccess, setEmergencySuccess] = useState("")
@@ -132,6 +135,25 @@ export default function HistoryPage() {
     setCurrentPage(1)
   }
 
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setEmergencyError("This browser does not support location access.")
+      return
+    }
+
+    setEmergencyError("")
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
+        if (!location) {
+          setLocation(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`)
+        }
+      },
+      (err) => setEmergencyError(`Could not read your location: ${err.message}`),
+      { enableHighAccuracy: true, timeout: 15000 }
+    )
+  }
+
   const handleTriggerEmergency = async (e) => {
     e.preventDefault()
     if (!location) {
@@ -146,14 +168,21 @@ export default function HistoryPage() {
       alert_type: alertType,
       location,
       notes,
+      ...(coords && { latitude: coords.latitude, longitude: coords.longitude }),
     })
 
     setEmergencyLoading(false)
     if (result.error) {
       setEmergencyError(typeof result.error === "object" ? JSON.stringify(result.error) : result.error)
     } else {
-      setEmergencySuccess("Emergency Dispatch Triggered Successfully!")
+      const dispatch = result.dispatch
+      setEmergencySuccess(
+        dispatch
+          ? `Ambulance ${dispatch.vehicle_number} dispatched. About ${dispatch.eta_minutes} minutes away (${dispatch.distance_km} km).`
+          : "Emergency alert logged. No ambulance is online right now, an operator will follow up."
+      )
       setLocation("")
+      setCoords(null)
       setNotes("")
       loadSummary()
       if (activeTab === "all" || activeTab === "emergency") {
@@ -377,6 +406,15 @@ export default function HistoryPage() {
                   onChange={(e) => setLocation(e.target.value)}
                   required
                 />
+                <button type="button" onClick={handleUseMyLocation} className={styles.locateBtn}>
+                  Use my current location
+                </button>
+                {coords && (
+                  <span className={styles.coordsHint}>
+                    GPS attached: {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}. The
+                    nearest available ambulance will be dispatched automatically.
+                  </span>
+                )}
               </div>
 
               <div className={styles.formGroup}>
