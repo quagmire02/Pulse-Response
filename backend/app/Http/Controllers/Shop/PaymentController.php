@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Shop\RegisterPaymentRequest;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PaymentTransaction;
 use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -202,6 +203,19 @@ class PaymentController extends Controller
             $validated['user_id'] = Auth::user()->id;
             $validated['payment_date'] = now();
             Payment::create($validated);
+
+            // Mirror the order payment into the accounting ledger so membership
+            // charges and order charges are auditable from one place.
+            PaymentTransaction::create([
+                'user_id' => $validated['user_id'],
+                'order_id' => $order->id,
+                'type' => PaymentTransaction::TYPE_ORDER_PAYMENT,
+                'provider' => $validated['payment_type'] === 'card' ? 'stripe' : 'cash',
+                'amount' => $order->total_amount,
+                'currency' => config('services.stripe.currency', 'usd'),
+                'status' => PaymentTransaction::STATUS_SUCCEEDED,
+                'description' => "Order #{$order->id} payment ({$validated['payment_type']})",
+            ]);
 
             Notification::create([
                 "user_id" => $order->user_id,

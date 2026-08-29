@@ -1,0 +1,404 @@
+.container {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin: 5rem 0 4px 0;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.dutyBadge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 14px;
+  border-radius: 14px;
+  margin-top: 5rem;
+}
+
+.online {
+  background: #e8f5e8;
+  color: #2d5a2d;
+}
+
+.offline {
+  background: #eef2f6;
+  color: #475569;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #eef2f6;
+  border-radius: 12px;
+  padding: 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.cardTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.hint {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.statusRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.statusItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statusLabel {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.statusValue {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.notes {
+  background: #f8fafc;
+  border-left: 3px solid #0b79d4;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 0.88rem;
+  color: #475569;
+  margin: 0 0 16px 0;
+}
+
+.map {
+  width: 100%;
+  height: 280px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.mapActions {
+  margin-bottom: 16px;
+}
+
+.primaryBtn,
+.secondaryBtn,
+.dangerBtn {
+  display: inline-block;
+  padding: 11px 22px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+}
+
+.primaryBtn {
+  background: #0b79d4;
+  color: #fff;
+}
+
+.primaryBtn:hover {
+  background: #0965b4;
+}
+
+.secondaryBtn {
+  background: #f1f5f9;
+  color: #0b5c9e;
+  border: 1px solid #cbd5e1;
+}
+
+.secondaryBtn:hover {
+  background: #e2e8f0;
+}
+
+.dangerBtn {
+  background: #c0392b;
+  color: #fff;
+}
+
+.dangerBtn:hover {
+  background: #a5342a;
+}
+
+.error {
+  background: #fee;
+  color: #c33;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #fcc;
+  margin-bottom: 18px;
+  font-size: 0.9rem;
+}
+
+.success {
+  background: #d4edda;
+  color: #155724;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #c3e6cb;
+  margin-bottom: 18px;
+  font-size: 0.9rem;
+}
+
+.loading,
+.errorState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.errorState p {
+  margin-bottom: 18px;
+}
+
+@media (max-width: 768px) {
+  .title { font-size: 1.5rem; }
+  .statusRow { grid-template-columns: 1fr; }
+}
+
+/* Volunteer specific additions on top of the shared console layout. */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.alertList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.alertCard {
+  border: 1px solid #eef2f6;
+  border-radius: 10px;
+  padding: 16px;
+  background: #fbfdff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alertHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.alertType {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+  text-transform: capitalize;
+}
+
+.alertMeta {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.statusChip {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.ongoing {
+  background: #fff4e0;
+  color: #a35b00;
+}
+
+.resolved {
+  background: #e8f5e8;
+  color: #2d5a2d;
+}
+
+.alertDetails {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.pointsEarned {
+  color: #2d5a2d;
+  font-weight: 700;
+}
+
+.alertActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rewardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.reward {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #eef2f6;
+  border-radius: 10px;
+  background: #fbfdff;
+}
+
+.rewardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rewardName {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+.rewardCost {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.ownedChip {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: #e8f5e8;
+  color: #2d5a2d;
+}
+
+.appearanceRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #eef2f6;
+}
+
+.appearanceGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chipRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: #0b79d4;
+  color: #0b79d4;
+}
+
+.chipActive {
+  background: #0b79d4;
+  border-color: #0b79d4;
+  color: #fff;
+}
+
+.chipActive:hover {
+  color: #fff;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 14px;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table td {
+  padding: 12px 14px;
+  border-top: 1px solid #f0f4f8;
+  color: #1e293b;
+}
+
+.youRow {
+  background: #eef6fd;
+  font-weight: 600;
+}

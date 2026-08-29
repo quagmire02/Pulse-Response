@@ -1,0 +1,281 @@
+.manager {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eef2f6;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.editorTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.lineList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.lineName {
+  flex: 1;
+  min-width: 140px;
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+.qtyControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qtyBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0b5c9e;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.qtyBtn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.qtyBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.qty {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.linePrice {
+  font-weight: 700;
+  color: #1e293b;
+  min-width: 70px;
+  text-align: right;
+}
+
+.removeBtn {
+  background: none;
+  border: none;
+  color: #c33;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.removeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.addBlock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.input {
+  padding: 9px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #0b79d4;
+}
+
+.suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  list-style: none;
+  margin: 4px 0 0 0;
+  padding: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.suggestion {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.suggestion:hover {
+  background: #f0f7ff;
+}
+
+.suggestionMeta {
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.preview {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-size: 0.88rem;
+  color: #475569;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.previewDiscount {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.primaryBtn,
+.secondaryBtn,
+.dangerBtn,
+.cancelBtn {
+  padding: 9px 18px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.primaryBtn {
+  background: #0b79d4;
+  color: #fff;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: #0965b4;
+}
+
+.secondaryBtn {
+  background: #f1f5f9;
+  color: #0b5c9e;
+  border: 1px solid #cbd5e1;
+}
+
+.secondaryBtn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.dangerBtn {
+  background: #fff;
+  color: #c33;
+  border: 1px solid #f5c6cb;
+}
+
+.dangerBtn:hover:not(:disabled) {
+  background: #fee;
+}
+
+.cancelBtn {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.primaryBtn:disabled,
+.secondaryBtn:disabled,
+.dangerBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.confirmBlock {
+  background: #fff8f8;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.confirmText {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.hint {
+  font-size: 0.82rem;
+  color: #a35b00;
+  margin: 0;
+}
+
+.error {
+  background: #fee;
+  color: #c33;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #fcc;
+  font-size: 0.85rem;
+}
+
+.success {
+  background: #d4edda;
+  color: #155724;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #c3e6cb;
+  font-size: 0.85rem;
+}
