@@ -273,7 +273,7 @@ class ChatbotService
         $key = config('services.chatbot.key');
 
         if (blank($key)) {
-            return $this->cannedReply();
+            return $this->cannedReply('No CHATBOT_API_KEY set. Add it to .env and run php artisan config:clear.');
         }
 
         try {
@@ -299,8 +299,14 @@ class ChatbotService
             $reply = $response->json('choices.0.message.content');
 
             if (!$response->successful() || blank($reply)) {
-                Log::warning('Chatbot model call failed: ' . $response->body());
-                return $this->cannedReply();
+                // Surface the provider's own words. Silently falling back here
+                // made a rejected model name look identical to a missing key.
+                $detail = $response->json('error.message')
+                    ?? ('HTTP ' . $response->status() . ' ' . mb_substr((string) $response->body(), 0, 300));
+
+                Log::error('Chatbot model call failed: ' . $detail);
+
+                return $this->cannedReply($detail);
             }
 
             return [
@@ -311,19 +317,23 @@ class ChatbotService
                 'doctors' => [],
             ];
         } catch (\Exception $e) {
-            Log::warning('Chatbot model unreachable: ' . $e->getMessage());
-            return $this->cannedReply();
+            Log::error('Chatbot model unreachable: ' . $e->getMessage());
+            return $this->cannedReply($e->getMessage());
         }
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function cannedReply(): array
+    private function cannedReply(?string $reason = null): array
     {
         return [
             'intent' => self::INTENT_CHAT,
             'source' => 'fallback',
+            // Why the model was not used. Shown in the chat UI so a broken key
+            // or a decommissioned model name is obvious instead of looking like
+            // the assistant simply has nothing to say.
+            'fallback_reason' => $reason,
             'reply' => "I can help you find the right specialist. Tell me what you are feeling, "
                 . "for example \"I have had a migraine for two days\" or \"gastric pain after eating\", "
                 . "and I will point you to the doctors on the platform who handle it. "

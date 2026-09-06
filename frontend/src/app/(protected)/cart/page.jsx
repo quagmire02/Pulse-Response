@@ -5,6 +5,7 @@ import { getCartItemsAction } from "@/actions/cartActions";
 import { getUserIdAction } from "@/actions/authActions";
 import CartItemCard from "@/components/cards/CartItemCard";
 import { CheckoutButton } from "@/components/buttons/buttons";
+import { PageShell, Alert, EmptyState, Loading, errorText } from "@/components/layout/PageShell";
 import styles from "./page.module.css";
 
 export default function CartPage() {
@@ -67,49 +68,37 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <div className={styles.container}>
-        <div className={styles.loading}>Loading cart...</div>
-      </div>
+      <PageShell title="Shopping Cart" showBack={false}>
+        <Loading label="Loading your cart" />
+      </PageShell>
     );
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <button onClick={() => router.back()} className={styles.backButton}>
-          ← Back
-        </button>
-        <h1 className={styles.title}>Shopping Cart</h1>
-        {cartItems.length > 0 && (
-          <p className={styles.itemCount}>
-            {cartItems.length} item{cartItems.length !== 1 ? "s" : ""}
-          </p>
-        )}
-      </div>
-
-      {error && (
-        <div className={styles.error}>
-          {typeof error === "object" ? JSON.stringify(error) : error}
-        </div>
-      )}
+    <PageShell
+      eyebrow="Checkout"
+      title="Shopping Cart"
+      subtitle={
+        cartItems.length > 0
+          ? `${cartItems.length} item${cartItems.length !== 1 ? "s" : ""}, medicines and equipment together.`
+          : undefined
+      }
+    >
+      <Alert kind="error">{errorText(error)}</Alert>
 
       {cartItems.length === 0 ? (
-        <div className={styles.emptyCart}>
-          <h2>Your cart is empty</h2>
-          <p>Add medicines or medical equipment to get started.</p>
-          <button
-            className={styles.shopButton}
-            onClick={() => router.push("/medicines")}
-          >
-            Browse Medicines
-          </button>
-          <button
-            className={styles.shopButton}
-            onClick={() => router.push("/equipment")}
-          >
-            Browse Equipment
-          </button>
-        </div>
+        <EmptyState>
+          <h2 style={{ marginBottom: 8 }}>Your cart is empty</h2>
+          <p style={{ marginBottom: 18 }}>Add medicines or medical equipment to get started.</p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <button className="pr-btn pr-btn-primary" onClick={() => router.push("/medicines")}>
+              Browse medicines
+            </button>
+            <button className="pr-btn pr-btn-ghost" onClick={() => router.push("/equipment")}>
+              Browse equipment
+            </button>
+          </div>
+        </EmptyState>
       ) : (
         <>
           <div className={styles.cartItems}>
@@ -145,6 +134,6 @@ export default function CartPage() {
           </div>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

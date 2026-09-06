@@ -58,6 +58,8 @@ export default function AssistantPage() {
         doctors: reply.doctors || [],
         action: reply.action,
         intent: reply.intent,
+        source: reply.source,
+        fallbackReason: reply.fallback_reason,
       },
     ])
   }
@@ -121,6 +123,13 @@ export default function AssistantPage() {
                 >
                   {message.action.label}
                 </button>
+              )}
+
+              {/* Makes a broken API key or rejected model name visible. */}
+              {message.fallbackReason && (
+                <span className={styles.fallbackNote}>
+                  AI unavailable: {message.fallbackReason}
+                </span>
               )}
             </div>
           </div>

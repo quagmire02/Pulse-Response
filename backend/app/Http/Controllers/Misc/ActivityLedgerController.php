@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\EquipmentRental;
 use App\Models\Consultation;
+use App\Models\OrderItem;
 use App\Models\EmergencyAlert;
 use App\Models\Payment;
 use App\Models\Pharmacist;
@@ -83,6 +84,52 @@ class ActivityLedgerController extends Controller
         return $this->getSummaryResponse($userId);
     }
 
+    /**
+     * Full detail for one timeline entry.
+     *
+     * The timeline only carries a summary line, so clicking an item used to
+     * dump the caller on a full list page. This returns just the record that
+     * was clicked, scoped to its owner so one patient cannot read another's.
+     */
+    public function entry(string $type, string $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $isStaff = $user->isAdmin() || $user->isSuperAdmin();
+
+            $detail = match ($type) {
+                // Both order categories resolve to the same order record; the
+                // timeline type only decides how the row was labelled.
+                'purchase', 'equipment_purchase' => Order::with([
+                        'orderItems.medicine:id,name,price',
+                        'orderItems.equipment:id,name,category',
+                        'delivery',
+                        'prescriptions',
+                    ])->find($id),
+                'equipment' => EquipmentRental::with(['equipment:id,name,category', 'vendor:id,company_name,contact_phone'])
+                    ->find($id),
+                'consultation' => Consultation::with(['slot.pharmacist.user:id,username,first_name,last_name'])
+                    ->find($id),
+                'emergency' => EmergencyAlert::with('assignedVehicle:id,vehicle_number')->find($id),
+                'payment' => Payment::with('order:id,total_amount,order_status,payment_status')->find($id),
+                default => null,
+            };
+
+            if (!$detail) {
+                return response()->json(['errors' => 'Record not found.'], 404);
+            }
+
+            if (!$isStaff && (int) $detail->user_id !== (int) $user->id) {
+                return response()->json(['errors' => 'You are not authorized to view this record.'], 403);
+            }
+
+            return response()->json(['type' => $type, 'data' => $detail], 200);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
+        }
+    }
+
     private function getTimelineResponse(string $userId, Request $request): JsonResponse
     {
         try {
@@ -92,39 +139,100 @@ class ActivityLedgerController extends Controller
 
             $timeline = [];
 
-            // 1. Medicine Purchases
-            if (in_array($typeFilter, ['all', 'purchase'])) {
+            // 1. Orders, split by what was actually bought.
+            //
+            // One order can hold medicines and equipment at once, so a single
+            // "Medicine Purchase" row would mislabel a wheelchair. Each
+            // category present becomes its own entry carrying its own subtotal.
+            //
+            // Rental lines are deliberately skipped here: checkout already
+            // writes an EquipmentRental row for them, which section 2 reads, so
+            // emitting them again would duplicate every rental.
+            if (in_array($typeFilter, ['all', 'purchase', 'equipment_purchase'])) {
                 $orders = Order::with(['orderItems.medicine', 'orderItems.equipment'])
                     ->where('user_id', $userId)
                     ->when($fromDate, fn($q) => $q->whereDate('order_date', '>=', $fromDate))
                     ->when($toDate, fn($q) => $q->whereDate('order_date', '<=', $toDate))
                     ->get();
 
+                $orderCategories = [
+                    'purchase' => [
+                        'item_type' => OrderItem::TYPE_MEDICINE,
+                        'title' => 'Medicine Purchase',
+                        'noun' => 'medicine',
+                    ],
+                    'equipment_purchase' => [
+                        'item_type' => OrderItem::TYPE_EQUIPMENT_PURCHASE,
+                        'title' => 'Equipment Purchase',
+                        'noun' => 'equipment',
+                    ],
+                ];
+
                 foreach ($orders as $order) {
-                    // Orders can now mix medicines with equipment bought or rented.
-                    $itemsDescription = $order->orderItems->map(function ($item) {
-                        $name = $item->medicine->name
-                            ?? $item->equipment->name
-                            ?? 'Item';
+                    $orderDate = $order->order_date
+                        ? Carbon::parse($order->order_date)->toIso8601String()
+                        : null;
 
-                        return $item->quantity . 'x ' . $name;
-                    })->implode(', ');
+                    foreach ($orderCategories as $entryType => $category) {
+                        if (!in_array($typeFilter, ['all', $entryType])) {
+                            continue;
+                        }
 
-                    $hasEquipment = $order->orderItems->contains(fn ($item) => $item->isEquipment());
+                        $lines = $order->orderItems
+                            ->where('item_type', $category['item_type']);
 
-                    $timeline[] = [
-                        'id' => $order->id,
-                        'type' => 'purchase',
-                        'date' => $order->order_date ? Carbon::parse($order->order_date)->toIso8601String() : null,
-                        'title' => $hasEquipment ? 'Order' : 'Medicine Purchase',
-                        'description' => $itemsDescription ?: 'Order placed',
-                        'amount' => $order->total_amount,
-                        'status' => $order->order_status,
-                        'details' => [
-                            'prescription_required' => $order->prescription_required,
-                            'subscription_renewal' => $order->is_subscription_renewal,
-                        ]
-                    ];
+                        if ($lines->isEmpty()) {
+                            continue;
+                        }
+
+                        $names = $lines->map(function ($item) {
+                            $name = $item->medicine->name ?? $item->equipment->name ?? 'Item';
+
+                            return $item->quantity . 'x ' . $name;
+                        })->implode(', ');
+
+                        // The category's own subtotal, not the order total, so
+                        // the delivery charge is not counted under both rows.
+                        // Rows placed before the mixed cart migration stored no
+                        // line prices, hence the fallbacks.
+                        $subtotal = $lines->sum(function ($item) {
+                            if ($item->line_total !== null) {
+                                return (float) $item->line_total;
+                            }
+
+                            if ($item->unit_price !== null) {
+                                return (float) $item->unit_price * $item->quantity;
+                            }
+
+                            $price = $item->medicine->price ?? $item->equipment->sale_price ?? 0;
+
+                            return (float) $price * $item->quantity;
+                        });
+
+                        // Nothing priced at all, and the order holds only this
+                        // category, so its total is the one figure we can trust.
+                        if ($subtotal <= 0 && $order->orderItems->count() === $lines->count()) {
+                            $subtotal = (float) $order->total_amount;
+                        }
+
+                        $timeline[] = [
+                            'id' => $order->id,
+                            'type' => $entryType,
+                            'date' => $orderDate,
+                            'title' => $category['title'] . ': ' . $names,
+                            'description' => 'Ordered ' . $lines->sum('quantity') . ' '
+                                . $category['noun'] . ' item(s) in order #' . $order->id . '.',
+                            'amount' => round($subtotal, 2),
+                            'status' => $order->order_status,
+                            'details' => [
+                                'order_id' => $order->id,
+                                'items' => $names,
+                                'order_total' => $order->total_amount,
+                                'prescription_required' => $order->prescription_required,
+                                'subscription_renewal' => $order->is_subscription_renewal,
+                            ]
+                        ];
+                    }
                 }
             }
 
@@ -273,13 +381,23 @@ class ActivityLedgerController extends Controller
     private function getSummaryResponse(string $userId): JsonResponse
     {
         try {
-            $totalPurchases = Order::where('user_id', $userId)->count();
+            // Counted the same way the timeline splits them, so the tiles and
+            // the tabs never disagree about what an order was.
+            $totalPurchases = Order::where('user_id', $userId)
+                ->whereHas('orderItems', fn ($q) => $q->where('item_type', OrderItem::TYPE_MEDICINE))
+                ->count();
+
+            $totalEquipmentPurchases = Order::where('user_id', $userId)
+                ->whereHas('orderItems', fn ($q) => $q->where('item_type', OrderItem::TYPE_EQUIPMENT_PURCHASE))
+                ->count();
+
             $totalRentals = EquipmentRental::where('user_id', $userId)->count();
             $totalConsultations = Consultation::where('user_id', $userId)->count();
             $totalAlerts = EmergencyAlert::where('user_id', $userId)->count();
 
             return response()->json([
                 'total_purchases' => $totalPurchases,
+                'total_equipment_purchases' => $totalEquipmentPurchases,
                 'total_rentals' => $totalRentals,
                 'total_consultations' => $totalConsultations,
                 'total_alerts' => $totalAlerts,

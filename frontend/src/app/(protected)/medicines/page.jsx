@@ -7,6 +7,7 @@ import {
   getMedicinesAction,
   getMedicineSuggestionsAction,
   getMedicineAlternativesAction,
+  requestMedicineRestockAction,
 } from "@/actions/medicineActions"
 import { getUserRoleAction } from "@/actions/authActions"
 import { isCustomerRole } from "@/libs/roles"
@@ -36,6 +37,11 @@ export default function MedicinesPage() {
   const [canOrder, setCanOrder] = useState(false)
   const [alternatives, setAlternatives] = useState([])
   const [alternativeGenerics, setAlternativeGenerics] = useState([])
+  // Set when a search dead ends: the item is sold out and nothing shares its
+  // chemical or category, so the only useful move left is to tell the pharmacy.
+  const [restockTarget, setRestockTarget] = useState(null)
+  const [restockNotice, setRestockNotice] = useState("")
+  const [restockBusy, setRestockBusy] = useState(false)
   const searchContainerRef = useRef(null)
   const debounceRef = useRef(null)
 
@@ -104,25 +110,61 @@ export default function MedicinesPage() {
   /**
    * When a search turns up nothing in stock, recommend medicines built on the
    * same chemical — searching "napa" with no stock surfaces other paracetamols.
+   *
+   * If even that finds nothing, the search has dead ended. Rather than showing
+   * an empty grid, the sold out item is kept so the shopper can hand the demand
+   * to the pharmacy team.
    */
   const loadAlternatives = async (searchedName, results) => {
-    const hasStockedResult = (results || []).some((medicine) => medicine.stock > 0)
+    const rows = results || []
+    const hasStockedResult = rows.some((medicine) => medicine.stock > 0)
+
+    setRestockNotice("")
 
     if (!searchedName || hasStockedResult) {
       setAlternatives([])
       setAlternativeGenerics([])
+      setRestockTarget(null)
       return
     }
+
+    // The grid filters to in-stock items by default, so the sold out match is
+    // usually not in `rows` at all. The alternatives endpoint echoes back what
+    // it matched, which is where the restock target really comes from.
+    const soldOutInGrid = rows.find((medicine) => medicine.stock <= 0) || null
 
     const result = await getMedicineAlternativesAction({ name: searchedName })
     if (result.error) {
       setAlternatives([])
       setAlternativeGenerics([])
+      setRestockTarget(soldOutInGrid)
       return
     }
 
-    setAlternatives(result.data)
+    const suggested = result.data || []
+    const soldOut =
+      soldOutInGrid || (result.requested || []).find((medicine) => medicine.stock <= 0) || null
+
+    setAlternatives(suggested)
     setAlternativeGenerics(result.matchedBy === "generic_name" ? result.genericNames : [])
+    // Only a genuine dead end gets the fallback panel.
+    setRestockTarget(suggested.length === 0 ? soldOut : null)
+  }
+
+  const handleRestockRequest = async () => {
+    if (!restockTarget) return
+
+    setRestockBusy(true)
+    const result = await requestMedicineRestockAction(restockTarget.id)
+    setRestockBusy(false)
+
+    setRestockNotice(
+      result.error
+        ? typeof result.error === "string"
+          ? result.error
+          : "Could not send the request."
+        : result.success
+    )
   }
 
   const updateFilters = (newFilters) => {
@@ -240,7 +282,16 @@ export default function MedicinesPage() {
         />
 
         <main className={styles.main}>
-          <h1 className={styles.title}>Medicines</h1>
+          <div className="pr-page-head" style={{ marginBottom: 18 }}>
+            <div>
+              <span className="pr-eyebrow">Pharmacy</span>
+              <h1 className="pr-title">Medicines</h1>
+              <p className="pr-subtitle">
+                Search by brand or chemical name. Out of stock items suggest alternatives
+                with the same active ingredient.
+              </p>
+            </div>
+          </div>
           <div className={styles.mainHeader}>
             <button className={styles.sidebarToggle} onClick={toggleSidebar} aria-label="Toggle sidebar">
               ☰
@@ -316,6 +367,37 @@ export default function MedicinesPage() {
                       <MedicineCard key={medicine.id} medicine={medicine} canOrder={canOrder} />
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Generic fallback: sold out, and nothing shares its chemical or
+                  category, so the only useful step left is telling the pharmacy. */}
+              {restockTarget && alternatives.length === 0 && (
+                <div className={styles.alternativesSection}>
+                  <h3 className={styles.alternativesTitle}>
+                    {`"${restockTarget.name}" is out of stock and nothing comparable is available right now.`}
+                  </h3>
+                  <p className={styles.restockHint}>
+                    {restockTarget.generic_name
+                      ? `No other ${restockTarget.generic_name} product is in stock either.`
+                      : "No product in the same category is in stock either."}{" "}
+                    You can let the pharmacy team know you are waiting for it.
+                  </p>
+
+                  {restockNotice ? (
+                    <p className={styles.restockNotice}>{restockNotice}</p>
+                  ) : (
+                    canOrder && (
+                      <button
+                        type="button"
+                        className="pr-btn pr-btn-primary"
+                        onClick={handleRestockRequest}
+                        disabled={restockBusy}
+                      >
+                        {restockBusy ? "Sending..." : "Notify the pharmacy"}
+                      </button>
+                    )
+                  )}
                 </div>
               )}
 

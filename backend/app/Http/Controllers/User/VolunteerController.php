@@ -172,6 +172,11 @@ class VolunteerController extends Controller
                 $volunteer->increment('incidents_helped');
             });
 
+            // The patient asked for help and someone turned up. Telling them is
+            // the whole point of the volunteer layer, so it happens here rather
+            // than being left to the ambulance notification.
+            $this->notifyPatient($record, $volunteer);
+
             return response()->json([
                 'success' => "Thank you for helping. {$points} points added.",
                 'data' => $volunteer->fresh(),
@@ -355,6 +360,36 @@ class VolunteerController extends Controller
     /**
      * @return array<int, array<string, mixed>>
      */
+    /**
+     * Let the patient know a trained volunteer has reached them.
+     *
+     * Wrapped so a notification failure can never undo the points the
+     * volunteer has already earned.
+     */
+    private function notifyPatient(VolunteerAlert $record, Volunteer $volunteer): void
+    {
+        try {
+            $incident = $record->emergencyAlert;
+
+            if (!$incident || !$incident->user_id) {
+                return;
+            }
+
+            $name = $volunteer->user->username ?? 'A community volunteer';
+            $skills = filled($volunteer->skills) ? " Trained in: {$volunteer->skills}." : '';
+
+            Notification::create([
+                'user_id' => $incident->user_id,
+                'subject' => 'A volunteer is helping you',
+                'message' => "{$name} has reached your emergency at {$incident->location} "
+                    . "and is giving first aid until the ambulance arrives.{$skills}",
+                'is_read' => false,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to notify patient of volunteer response: ' . $e->getMessage());
+        }
+    }
+
     private function rewardCatalogue(Volunteer $volunteer): array
     {
         $catalogue = [];

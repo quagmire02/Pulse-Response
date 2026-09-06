@@ -22,6 +22,7 @@ use App\Http\Controllers\Equipment\EquipmentFulfillmentController;
 use App\Http\Controllers\Misc\EmergencyAlertController;
 use App\Http\Controllers\Misc\ActivityLedgerController;
 use App\Http\Controllers\Misc\ChatbotController;
+use App\Http\Controllers\Misc\GeocodeController;
 use App\Http\Controllers\User\AmbulanceCompanyController;
 use App\Http\Controllers\User\AmbulanceVehicleController;
 use App\Http\Controllers\User\VolunteerController;
@@ -183,6 +184,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payments', [PaymentController::class, 'create'])
         ->name('api.createPayment');
 
+    // Real Stripe charge for an order, using a tokenised payment method. In
+    // test mode the token is one of Stripe's own fixtures, so no card details
+    // exist anywhere in this codebase.
+    Route::post('/orders/{order}/pay-card', [PaymentController::class, 'payWithCard'])
+        ->name('api.payOrderWithCard');
+
     Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])
         ->name('api.deletePayment');
 
@@ -218,6 +225,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/pharmacists/{pharmacist}/reviews', [DoctorReviewController::class, 'index'])
         ->name('api.getReviews');
+
+    Route::get('/pharmacists/{pharmacist}/reviews/eligibility', [DoctorReviewController::class, 'eligibility'])
+        ->name('api.getReviewEligibility');
 
     Route::post('/pharmacists/{pharmacist}/reviews', [DoctorReviewController::class, 'create'])
         ->name('api.createReview');
@@ -275,15 +285,34 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/emergency-alerts', [EmergencyAlertController::class, 'store'])
         ->name('api.triggerEmergencyAlert');
 
+    // Live ambulance position for the patient who raised the alert. No id means
+    // "my current emergency", which is what the tracking panel polls.
+    Route::get('/emergency-alerts/tracking', [EmergencyAlertController::class, 'tracking'])
+        ->name('api.getEmergencyTracking');
+    Route::get('/emergency-alerts/{alert}/tracking', [EmergencyAlertController::class, 'tracking'])
+        ->name('api.getEmergencyAlertTracking');
+
+    // Out of stock fallback: hand the demand to whoever can restock it.
+    Route::post('/medicines/{id}/restock-request', [MedicineController::class, 'requestRestock'])
+        ->name('api.requestMedicineRestock');
+    Route::post('/equipment/{id}/restock-request', [EquipmentController::class, 'requestRestock'])
+        ->name('api.requestEquipmentRestock');
+
     // Activity Ledger Timeline
     Route::get('/ledger/timeline', [ActivityLedgerController::class, 'timeline'])
         ->name('api.getLedgerTimeline');
     Route::get('/ledger/summary', [ActivityLedgerController::class, 'summary'])
         ->name('api.getLedgerSummary');
+    Route::get('/ledger/entry/{type}/{id}', [ActivityLedgerController::class, 'entry'])
+        ->name('api.getLedgerEntry');
     Route::get('/ledger/patient/{userId}', [ActivityLedgerController::class, 'patientTimeline'])
         ->name('api.getPatientTimeline');
     Route::get('/ledger/patient/{userId}/summary', [ActivityLedgerController::class, 'patientSummary'])
         ->name('api.getPatientSummary');
+
+    // Coordinates to a readable address, for the driver and volunteer consoles.
+    Route::get('/geocode/reverse', [GeocodeController::class, 'reverse'])
+        ->name('api.reverseGeocode');
 
     // AI assistant. Rules run first, the model is only a fallback.
     Route::post('/chatbot/message', [ChatbotController::class, 'message'])
@@ -351,4 +380,6 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('api.getAmbulanceDashboard');
     Route::get('/partner/customer-dashboard', [PartnerDashboardController::class, 'customerDashboard'])
         ->name('api.getCustomerDashboard');
+    Route::get('/partner/pharmacy-dashboard', [PartnerDashboardController::class, 'pharmacyDashboard'])
+        ->name('api.getPharmacyDashboard');
     });

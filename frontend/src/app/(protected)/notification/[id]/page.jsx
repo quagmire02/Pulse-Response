@@ -44,6 +44,8 @@ export default function NotificationDetailPage() {
   const markAsRead = async () => {
     try {
       await updateNotificationAction(notificationId)
+      // Drop the navbar badge straight away instead of waiting for the poll.
+      window.dispatchEvent(new Event("notifications-changed"))
     } catch (err) {
       console.error("Failed to mark notification as read:", err)
     }

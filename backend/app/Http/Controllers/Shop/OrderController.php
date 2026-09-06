@@ -14,6 +14,7 @@ use App\Models\EquipmentFulfillment;
 use App\Models\EquipmentRental;
 use App\Models\Medicine;
 use App\Models\Payment;
+use App\Models\PaymentTransaction;
 use App\Models\Delivery;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -36,6 +37,47 @@ class OrderController extends Controller
             'subject' => $subject,
             'message' => $message,
         ]);
+    }
+
+    /**
+     * Record the money the courier just collected.
+     *
+     * Cash orders have no payment row until the goods actually change hands,
+     * which is why marking one delivered used to fail with "Payment not found".
+     * The delivery is the receipt, so the record is written here and the
+     * customer is told the money was received.
+     */
+    private function settleOnDelivery(Order $order): Payment
+    {
+        $method = $order->isCashOnDelivery() ? Order::PAYMENT_CASH : Order::PAYMENT_CARD;
+
+        $payment = Payment::create([
+            'user_id' => $order->user_id,
+            'order_id' => $order->id,
+            'payment_type' => $method,
+            'payment_date' => now(),
+        ]);
+
+        PaymentTransaction::create([
+            'user_id' => $order->user_id,
+            'order_id' => $order->id,
+            'type' => PaymentTransaction::TYPE_ORDER_PAYMENT,
+            'provider' => $method === Order::PAYMENT_CARD ? 'stripe' : 'cash',
+            'amount' => $order->total_amount,
+            'currency' => config('services.stripe.currency', 'usd'),
+            'status' => PaymentTransaction::STATUS_SUCCEEDED,
+            'description' => "Order #{$order->id} settled on delivery ({$method})",
+        ]);
+
+        $this->createNotification(
+            $order->user_id,
+            'Payment received',
+            $method === Order::PAYMENT_CASH
+                ? "We received \${$order->total_amount} in cash for order #{$order->id} on delivery. Nothing further is owed."
+                : "Payment of \${$order->total_amount} for order #{$order->id} is settled."
+        );
+
+        return $payment;
     }
 
     /**
@@ -395,16 +437,23 @@ class OrderController extends Controller
                 // The subscription discount is a medicines perk; equipment is one-off.
                 $discountRate = Order::getSubscriptionDiscountRate($validated['subscribe_type']);
                 $discountAmount = round($medicineSubtotal * $discountRate, 2);
-                $totalAmount = $subtotal - $discountAmount;
 
-                $est_del_date = now()->addDays(3);
-                if ($validated['delivery_type'] === 'rapid') {
-                    $est_del_date = now()->addDays(1);
-                    $totalAmount += 10;
-                } elseif ($validated['delivery_type'] === 'emergency') {
-                    $est_del_date = now()->addHour();
-                    $totalAmount += 20;
+                // Active premium members save 10% when they pay by card. Cash
+                // orders and non members pay full price.
+                $premiumDiscount = 0.0;
+                if (($validated['payment_method'] ?? 'cash') === 'card' && $user->hasActivePremium()) {
+                    $premiumDiscount = round(($subtotal - $discountAmount) * Order::PREMIUM_CARD_DISCOUNT_RATE, 2);
                 }
+
+                $deliveryCharge = Order::deliveryCharge($validated['delivery_type']);
+
+                $totalAmount = round($subtotal - $discountAmount - $premiumDiscount + $deliveryCharge, 2);
+
+                $est_del_date = match ($validated['delivery_type']) {
+                    'rapid' => now()->addDay(),
+                    'emergency' => now()->addHour(),
+                    default => now()->addDays(3),
+                };
 
                 // Calculate next delivery date for subscriptions
                 $nextDeliveryDate = Order::calculateNextDeliveryDate($validated['subscribe_type']);
@@ -413,7 +462,12 @@ class OrderController extends Controller
                     'user_id' => $user->id,
                     'total_amount' => $totalAmount,
                     'discount_amount' => $discountAmount,
+                    'delivery_charge' => $deliveryCharge,
+                    'premium_discount' => $premiumDiscount,
                     'order_date' => now(),
+                    // Recorded, not just used for the discount: the delivered
+                    // handler needs to know whether the courier collects cash.
+                    'payment_method' => $validated['payment_method'] ?? Order::PAYMENT_CASH,
                     'subscribe_type' => $validated['subscribe_type'],
                     'next_delivery_date' => $nextDeliveryDate,
                     'delivery_address' => $validated['delivery_address'],
@@ -639,10 +693,12 @@ class OrderController extends Controller
             if ($order_status_key && $validated['order_status'] === 'delivered') {
                 $payment = Payment::where('order_id', $order->id)->first();
 
+                // Cash is handed to the courier, so delivery is the moment the
+                // money arrives. Blocking here on a payment the customer had to
+                // confirm in advance was backwards: there was nothing to
+                // confirm until the goods were at the door.
                 if (!$payment) {
-                    return response()->json([
-                        "errors" => "Payment not found."
-                    ], 404);
+                    $payment = $this->settleOnDelivery($order);
                 }
 
                 $order->payment_status = 'paid';
@@ -710,6 +766,8 @@ class OrderController extends Controller
                         'next_delivery_date' => $nextDeliveryDate,
                         'is_subscription_renewal' => true,
                         'parent_order_id' => $order->id,
+                        // A renewal settles the same way the original did.
+                        'payment_method' => $order->payment_method,
                         'delivery_address' => $order->delivery_address,
                         'contact_phone' => $order->contact_phone,
                         'delivery_notes' => $order->delivery_notes,

@@ -171,8 +171,13 @@ class User extends Authenticatable
             return 'vendor';
         }
 
-        if ($this->pharmacist()->exists()) {
+        if ($this->pharmacistProfile()->exists()) {
             return 'pharmacist';
+        }
+
+        // The pharmacists table holds doctor profiles; see PharmacistProfile.
+        if ($this->pharmacist()->exists()) {
+            return 'doctor';
         }
 
         if ($this->ambulanceCompany()->exists()) {
@@ -187,9 +192,26 @@ class User extends Authenticatable
         return $this->hasOne(Cart::class);
     }
 
+    /** The doctor profile. Named for the table it lives in. */
     public function pharmacist(): HasOne
     {
         return $this->hasOne(Pharmacist::class);
+    }
+
+    /** Pharmacy staff profile, separate from the doctor profile above. */
+    public function pharmacistProfile(): HasOne
+    {
+        return $this->hasOne(PharmacistProfile::class);
+    }
+
+    public function isPharmacist(): bool
+    {
+        return $this->pharmacistProfile()->exists();
+    }
+
+    public function isDoctor(): bool
+    {
+        return $this->pharmacist()->exists();
     }
 
     public function vendor(): HasOne

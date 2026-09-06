@@ -86,6 +86,45 @@ class StripeService
     }
 
     /**
+     * Charge a card while the customer is watching the checkout.
+     *
+     * Separate from chargeSavedMethod because that one sets off_session, which
+     * tells Stripe nobody is at the keyboard. On a checkout the cardholder is
+     * present, so a card that needs authentication should be allowed to ask for
+     * it rather than being declined outright.
+     *
+     * @param float $amount Amount in major units, e.g. 45.50
+     * @return array{ok: bool, data: array<string, mixed>, error: ?string}
+     */
+    public function chargeNow(
+        string $customerId,
+        string $paymentMethodId,
+        float $amount,
+        string $description,
+        array $metadata = []
+    ): array {
+        $payload = [
+            'amount' => (int) round($amount * 100),
+            'currency' => $this->currency(),
+            'customer' => $customerId,
+            'payment_method' => $paymentMethodId,
+            'description' => $description,
+            'confirm' => 'true',
+            // The customer is here, so redirect based authentication is not
+            // something this API-only flow can complete. Failing loudly is
+            // better than leaving an intent hanging.
+            'automatic_payment_methods[enabled]' => 'true',
+            'automatic_payment_methods[allow_redirects]' => 'never',
+        ];
+
+        foreach ($metadata as $key => $value) {
+            $payload["metadata[{$key}]"] = (string) $value;
+        }
+
+        return $this->post('/payment_intents', $payload);
+    }
+
+    /**
      * Charge a saved payment method off session, which is what an automatic
      * renewal is: the customer is not at the keyboard to approve it.
      *

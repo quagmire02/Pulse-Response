@@ -9,9 +9,6 @@ class Payment extends Model
 {
     use HasFactory;
 
-    public const CREATED_AT = null;
-    public const UPDATED_AT = null;
-
     protected $fillable = [
         'user_id',
         'order_id',
@@ -20,7 +17,7 @@ class Payment extends Model
     ];
 
     protected $casts = [
-        'payment_date' => 'date',
+        'payment_date' => 'datetime',
     ];
 
     public function order()

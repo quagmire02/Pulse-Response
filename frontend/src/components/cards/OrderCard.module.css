@@ -158,3 +158,15 @@
   }
 }
 
+
+/* Replaces the old "Confirm Payment" affordance on cash orders. */
+.cashNote {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #0f766e;
+  line-height: 1.5;
+}

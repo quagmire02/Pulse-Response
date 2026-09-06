@@ -26,6 +26,8 @@ export default function EquipmentPage() {
   const [minPrice, setMinPrice] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
   const [availableOnly, setAvailableOnly] = useState(false)
+  // rent | sale | both. Equipment can be hired by the day or bought outright.
+  const [offer, setOffer] = useState("")
 
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -53,6 +55,7 @@ export default function EquipmentPage() {
       if (minPrice) params.min_price = minPrice
       if (maxPrice) params.max_price = maxPrice
       if (availableOnly) params.available_only = true
+      if (offer) params.offer = offer
 
       const result = await getEquipmentAction(params)
       if (cancelled) return
@@ -66,7 +69,7 @@ export default function EquipmentPage() {
     }
     fetch()
     return () => { cancelled = true }
-  }, [currentPage, search, category, condition, minPrice, maxPrice, availableOnly])
+  }, [currentPage, search, category, condition, minPrice, maxPrice, availableOnly, offer])
 
   const handleChange = (setter) => (e) => { setter(e.target.value); setCurrentPage(1) }
 
@@ -138,7 +141,7 @@ export default function EquipmentPage() {
   }
 
   const handleReset = () => {
-    setSearch(""); setCategory(""); setCondition("")
+    setSearch(""); setCategory(""); setCondition(""); setOffer("")
     setMinPrice(""); setMaxPrice(""); setAvailableOnly(false)
     setSuggestions([]); setShowSuggestions(false); setHighlightIndex(-1); setCurrentPage(1)
   }
@@ -147,6 +150,10 @@ export default function EquipmentPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>Medical Equipment</h1>
+        <p className={styles.subtitle}>
+          Hire equipment by the day or buy it outright. Each listing shows which options
+          the supplier offers.
+        </p>
       </div>
 
       <div className={styles.filterBar}>
@@ -177,6 +184,12 @@ export default function EquipmentPage() {
             </ul>
           )}
         </div>
+        <select className={styles.filterSelect} value={offer} onChange={handleChange(setOffer)}>
+          <option value="">Rent or buy</option>
+          <option value="rent">Available to rent</option>
+          <option value="sale">Available to buy</option>
+          <option value="both">Both options</option>
+        </select>
         <input className={styles.filterInput} type="text" placeholder="Category (e.g. oxygen, vaccine)" value={category} onChange={handleChange(setCategory)} />
         <select className={styles.filterSelect} value={condition} onChange={handleChange(setCondition)}>
           <option value="">Any Condition</option>

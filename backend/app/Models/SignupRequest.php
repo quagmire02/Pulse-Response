@@ -23,11 +23,12 @@ class SignupRequest extends Model
     public const ROLES = ['user', 'pharmacist', 'doctor', 'vendor', 'ambulance_company', 'driver', 'volunteer'];
 
     /**
-     * Roles that get a pharmacists row created for them on approval.
+     * Roles that get a doctor profile (the pharmacists table) on approval.
+     * Pharmacists are a separate profession and get a pharmacist_profiles row.
      *
      * @var array<int, string>
      */
-    public const PHARMACIST_ROLES = ['pharmacist', 'doctor'];
+    public const PHARMACIST_ROLES = ['doctor'];
 
     protected $fillable = [
         'first_name',

@@ -42,6 +42,43 @@
   line-height: 1.5;
 }
 
+.accessBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 22px;
+  margin-bottom: 22px;
+  border-radius: 12px;
+  background: linear-gradient(120deg, #0b79d4, #12a594);
+  color: #fff;
+}
+
+.accessLabel {
+  display: block;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.9;
+  font-weight: 700;
+}
+
+.accessValue {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.accessDays {
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

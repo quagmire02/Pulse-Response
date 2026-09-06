@@ -10,6 +10,7 @@ import {
   getPaymentLedgerAction,
 } from "@/actions/membershipActions"
 import { StatTile } from "@/components/charts/Charts"
+import { toastSuccess, toastError } from "@/libs/toast"
 import styles from "./page.module.css"
 
 /**
@@ -73,9 +74,12 @@ export default function MembershipPage() {
     setBusy("")
 
     if (result.error) {
-      setError(typeof result.error === "object" ? JSON.stringify(result.error) : result.error)
+      const reason = typeof result.error === "object" ? JSON.stringify(result.error) : result.error
+      setError(reason)
+      toastError(reason)
     } else {
       setMessage(result.success)
+      toastSuccess(result.success)
     }
 
     load()
@@ -93,6 +97,16 @@ export default function MembershipPage() {
   const expires = membership?.premium_expires_at
     ? new Date(membership.premium_expires_at).toLocaleDateString()
     : null
+
+  // Each successful charge stacks another 30 days, so show what is left.
+  const daysLeft = membership?.premium_expires_at
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(membership.premium_expires_at) - new Date()) / (1000 * 60 * 60 * 24)
+        )
+      )
+    : 0
 
   return (
     <div className={styles.container}>
@@ -117,6 +131,18 @@ export default function MembershipPage() {
 
       {message && <div className={styles.success}>{message}</div>}
       {error && <div className={styles.error}>{error}</div>}
+
+      {membership?.is_premium && (
+        <div className={styles.accessBanner}>
+          <div>
+            <span className={styles.accessLabel}>Premium access active</span>
+            <span className={styles.accessValue}>Until {expires}</span>
+          </div>
+          <span className={styles.accessDays}>
+            {daysLeft} day{daysLeft === 1 ? "" : "s"} remaining
+          </span>
+        </div>
+      )}
 
       <div className={styles.statsGrid}>
         <StatTile
@@ -201,8 +227,9 @@ export default function MembershipPage() {
         </div>
 
         <p className={styles.note}>
-          Renewing early never loses you days. A new period is added on top of whatever is
-          left on the current one.
+          Each successful charge adds 30 days. Renewing twice gives you 60 days, and so on,
+          so renewing early never loses you time. While your access is active you get 10% off
+          medicines and equipment whenever you pay by card at checkout.
         </p>
       </div>
 

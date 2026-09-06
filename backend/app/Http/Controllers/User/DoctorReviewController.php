@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\Consultation;
 use App\Models\DoctorReview;
 use App\Models\Pharmacist;
 use Illuminate\Http\Request;
@@ -38,6 +39,57 @@ class DoctorReviewController extends Controller
         }
     }
 
+    /**
+     * A review is only allowed once the patient has actually been seen: they
+     * must hold a consultation with this doctor whose slot time has already
+     * passed. Without this, anyone could rate a doctor they never met.
+     */
+    private function hasCompletedConsultation(int $userId, int $pharmacistId): bool
+    {
+        return Consultation::where('user_id', $userId)
+            ->whereHas('slot', function ($query) use ($pharmacistId) {
+                $query->where('pharmacist_id', $pharmacistId)
+                    // Slots store the date and the hour the appointment starts.
+                    ->where(function ($q) {
+                        $q->whereDate('date', '<', now()->toDateString())
+                          ->orWhere(function ($sameDay) {
+                              $sameDay->whereDate('date', now()->toDateString())
+                                      ->where('end_time', '<=', (int) now()->format('H'));
+                          });
+                    });
+            })
+            ->exists();
+    }
+
+    // GET /api/pharmacists/{pharmacist}/reviews/eligibility
+    public function eligibility(string $pharmacist): JsonResponse
+    {
+        try {
+            $found = Pharmacist::find($pharmacist);
+
+            if (!$found) {
+                return response()->json(['errors' => 'Doctor not found.'], 404);
+            }
+
+            $user = Auth::user();
+            $eligible = !$user->isAdmin()
+                && $this->hasCompletedConsultation($user->id, $found->id);
+
+            return response()->json([
+                'can_review' => $eligible,
+                'already_reviewed' => DoctorReview::where('user_id', $user->id)
+                    ->where('pharmacist_id', $found->id)
+                    ->exists(),
+                'reason' => $eligible
+                    ? null
+                    : 'You can review this doctor after your booked consultation has taken place.',
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
+        }
+    }
+
     // POST /api/pharmacists/{pharmacist}/reviews
     public function create(Request $request, string $pharmacist): JsonResponse
     {
@@ -54,6 +106,12 @@ class DoctorReviewController extends Controller
             $pharmacist = Pharmacist::find($pharmacist);
             if (!$pharmacist) {
                 return response()->json(['errors' => 'Pharmacist not found.'], 404);
+            }
+
+            if (!$this->hasCompletedConsultation(Auth::id(), $pharmacist->id)) {
+                return response()->json([
+                    'errors' => 'You can only review a doctor after a consultation you booked has taken place.',
+                ], 403);
             }
 
             DoctorReview::updateOrCreate(

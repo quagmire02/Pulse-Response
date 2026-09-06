@@ -90,6 +90,7 @@
 }
 
 .purc .statIcon { background: #e0f2fe; color: #0284c7; }
+.equip .statIcon { background: #fef3c7; color: #d97706; }
 .rent .statIcon { background: #f3e8ff; color: #9333ea; }
 .cons .statIcon { background: #ecfdf5; color: #059669; }
 .aler .statIcon { background: #fee2e2; color: #dc2626; }

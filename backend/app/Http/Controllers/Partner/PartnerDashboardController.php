@@ -11,6 +11,8 @@ use App\Models\AmbulanceVehicle;
 use App\Models\AmbulanceTrip;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Medicine;
+use App\Models\User;
 use App\Models\VendorReview;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +22,9 @@ use Carbon\Carbon;
 
 class PartnerDashboardController extends Controller
 {
+    /** At or below this many units, a medicine is flagged for reordering. */
+    private const LOW_STOCK_THRESHOLD = 10;
+
     public function __construct()
     {
         $this->middleware('auth:sanctum');
@@ -264,6 +269,170 @@ class PartnerDashboardController extends Controller
         }
     }
 
+    /**
+     * Pharmacy analytics, scoped to the pharmacist's own listings.
+     *
+     * Medicines carry an owning pharmacist, so these figures cover only what
+     * this account listed. Listings with no owner, which is what an admin
+     * creates and what the catalogue held before ownership existed, are
+     * included so nothing falls off the books entirely.
+     */
+    public function pharmacyDashboard(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $isStaff = $user->isAdmin() || $user->isSuperAdmin();
+
+            if (!$user->isPharmacist() && !$isStaff) {
+                return response()->json(['errors' => 'Only pharmacy staff can view this dashboard.'], 403);
+            }
+
+            $profileId = $user->pharmacistProfile?->id;
+
+            // Admins see the whole catalogue; a pharmacist sees their own rows
+            // plus the unowned ones.
+            $ownedMedicineIds = $isStaff
+                ? null
+                : Medicine::where('pharmacist_id', $profileId)
+                    ->orWhereNull('pharmacist_id')
+                    ->pluck('id');
+
+            // Cancelled orders put their stock back, so counting them as sales
+            // would report revenue that was refunded.
+            $lines = OrderItem::with([
+                    'medicine:id,name,brand,generic_name,price,stock',
+                    'medicine.categories:id,name',
+                    'order:id,order_date,order_status,is_subscription_renewal',
+                ])
+                ->where('item_type', OrderItem::TYPE_MEDICINE)
+                ->when($ownedMedicineIds !== null, fn ($q) => $q->whereIn('medicine_id', $ownedMedicineIds))
+                ->whereHas('order', fn ($q) => $q->where('order_status', '!=', 'canceled'))
+                ->get();
+
+            $revenue = 0.0;
+            $units = 0;
+            $orderIds = [];
+            $medicineTotals = [];
+            $medicineUnits = [];
+            $categoryTotals = [];
+            $repeatMix = ['First orders' => 0.0, 'Subscription renewals' => 0.0];
+            $buckets = $this->monthBuckets();
+
+            foreach ($lines as $line) {
+                $lineTotal = $this->orderItemTotal($line);
+                $quantity = max(1, (int) $line->quantity);
+
+                $revenue += $lineTotal;
+                $units += $quantity;
+                $orderIds[$line->order_id] = true;
+
+                $name = $line->medicine->name ?? 'Medicine';
+                $medicineTotals[$name] = ($medicineTotals[$name] ?? 0) + $lineTotal;
+                $medicineUnits[$name] = ($medicineUnits[$name] ?? 0) + $quantity;
+
+                // First category only. A medicine can sit in several, and
+                // adding the same money to each would inflate the total past
+                // the actual revenue.
+                $category = $line->medicine?->categories->first()->name ?? 'Uncategorised';
+                $categoryTotals[$category] = ($categoryTotals[$category] ?? 0) + $lineTotal;
+
+                $repeatMix[$line->order?->is_subscription_renewal ? 'Subscription renewals' : 'First orders'] += $lineTotal;
+
+                $key = $line->order?->order_date
+                    ? Carbon::parse($line->order->order_date)->format('Y-m')
+                    : null;
+
+                if ($key && isset($buckets[$key])) {
+                    $buckets[$key]['value'] += $lineTotal;
+                    $buckets[$key]['count'] += $quantity;
+                }
+            }
+
+            arsort($medicineTotals);
+            arsort($medicineUnits);
+            arsort($categoryTotals);
+
+            // Stock health, which is the half of this job the sales figures
+            // cannot show: what is about to run out.
+            $medicines = Medicine::select('id', 'name', 'brand', 'generic_name', 'price', 'stock')
+                ->when($ownedMedicineIds !== null, fn ($q) => $q->whereIn('id', $ownedMedicineIds))
+                ->get();
+
+            $outOfStock = $medicines->where('stock', '<=', 0)
+                ->sortBy('name')
+                ->values()
+                ->map(fn ($medicine) => [
+                    'id' => $medicine->id,
+                    'name' => $medicine->name,
+                    'brand' => $medicine->brand,
+                    'generic_name' => $medicine->generic_name,
+                    'stock' => (int) $medicine->stock,
+                ]);
+
+            $lowStock = $medicines->where('stock', '>', 0)
+                ->where('stock', '<=', self::LOW_STOCK_THRESHOLD)
+                ->sortBy('stock')
+                ->values()
+                ->map(fn ($medicine) => [
+                    'id' => $medicine->id,
+                    'name' => $medicine->name,
+                    'brand' => $medicine->brand,
+                    'generic_name' => $medicine->generic_name,
+                    'stock' => (int) $medicine->stock,
+                ]);
+
+            // Latest movements, so a pharmacist can see a sale land rather than
+            // only a total that moved.
+            $recentSales = $lines
+                ->sortByDesc(fn ($line) => $line->order?->order_date)
+                ->take(10)
+                ->values()
+                ->map(fn ($line) => [
+                    'order_id' => $line->order_id,
+                    'medicine' => $line->medicine->name ?? 'Medicine',
+                    'quantity' => (int) $line->quantity,
+                    'line_total' => round($this->orderItemTotal($line), 2),
+                    'order_date' => $line->order?->order_date,
+                    'order_status' => $line->order?->order_status,
+                ]);
+
+            $unitShares = [];
+            foreach (array_slice($medicineUnits, 0, 5, true) as $name => $quantity) {
+                $unitShares[$name] = (float) $quantity;
+            }
+
+            return response()->json([
+                'medicines_count' => $medicines->count(),
+                'orders_count' => count($orderIds),
+                'units_sold' => $units,
+                'total_revenue' => round($revenue, 2),
+                'average_order_value' => count($orderIds) > 0
+                    ? round($revenue / count($orderIds), 2)
+                    : 0.0,
+                'out_of_stock_count' => $outOfStock->count(),
+                'low_stock_count' => $lowStock->count(),
+                'low_stock_threshold' => self::LOW_STOCK_THRESHOLD,
+                'out_of_stock' => $outOfStock,
+                'low_stock' => $lowStock,
+                'top_medicines' => $this->toShares(array_slice($medicineTotals, 0, 5, true)),
+                'top_by_units' => $this->toShares($unitShares),
+                'category_mix' => $this->toShares(array_slice($categoryTotals, 0, 6, true)),
+                'repeat_mix' => $this->toShares($repeatMix),
+                'monthly_revenue' => $this->serialiseBuckets($buckets),
+                'recent_sales' => $recentSales,
+                // Says whose numbers these are, so nobody reads a pharmacist's
+                // figures as platform wide or the reverse.
+                'scope_note' => $isStaff
+                    ? 'Admin view: every medicine on the platform.'
+                    : 'Your listings, plus any medicine the platform owns.',
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
+        }
+    }
+
     public function ambulanceDashboard(Request $request): JsonResponse
     {
         try {
@@ -288,24 +457,30 @@ class PartnerDashboardController extends Controller
                 return response()->json(['errors' => 'Authorized ambulance company profile not found.'], 403);
             }
 
-            // 1. Completed trips count/list
+            // 1. Trips. A run that is still under way has no completion time
+            // and a response delay of 0, so counting those as completed both
+            // inflated the trip count and dragged the average delay down.
             $trips = AmbulanceTrip::with('vehicle')
                 ->where('ambulance_company_id', $company->id)
-                ->orderBy('completion_time', 'desc')
+                ->orderByDesc('dispatch_time')
                 ->get();
 
-            $completedTripsCount = $trips->count();
+            $completed = $trips->filter(fn ($trip) => $trip->completion_time !== null);
 
-            // 2. Average response delay
-            $avgDelay = $trips->avg('response_delay_minutes') ?: 0.0;
+            $completedTripsCount = $completed->count();
 
-            // 3. Total revenue
-            $totalRevenue = $trips->sum('revenue') ?: 0.0;
+            // 2. Average response delay, over finished runs only
+            $avgDelay = $completed->avg('response_delay_minutes') ?: 0.0;
+
+            // 3. Total revenue, from the fares recorded at dispatch
+            $totalRevenue = $completed->sum('revenue') ?: 0.0;
 
             // 4. Individual vehicle efficiency
             $vehicles = AmbulanceVehicle::where('ambulance_company_id', $company->id)->get();
-            $vehicleEfficiency = $vehicles->map(function ($vehicle) use ($trips) {
-                $vTrips = $trips->where('vehicle_id', $vehicle->id);
+            $vehicleEfficiency = $vehicles->map(function ($vehicle) use ($completed) {
+                // Per vehicle figures use the same finished-runs rule as the
+                // headline ones, so the columns add up to the totals above.
+                $vTrips = $completed->where('vehicle_id', $vehicle->id);
                 $vTripsCount = $vTrips->count();
                 $vAvgDelay = $vTrips->avg('response_delay_minutes') ?: 0.0;
                 $vRevenue = $vTrips->sum('revenue') ?: 0.0;
@@ -331,7 +506,7 @@ class PartnerDashboardController extends Controller
 
             // 6. Six month trip volume and revenue
             $revenueBuckets = $this->monthBuckets();
-            foreach ($trips as $trip) {
+            foreach ($completed as $trip) {
                 if (!$trip->completion_time) {
                     continue;
                 }
@@ -349,7 +524,7 @@ class PartnerDashboardController extends Controller
                 '10 to 20 min' => 0,
                 'Over 20 min' => 0,
             ];
-            foreach ($trips as $trip) {
+            foreach ($completed as $trip) {
                 $delay = (float) $trip->response_delay_minutes;
                 if ($delay < 5) {
                     $delayBands['Under 5 min']++;
@@ -377,7 +552,7 @@ class PartnerDashboardController extends Controller
                     'description' => $company->description,
                 ],
                 'completed_trips_count' => $completedTripsCount,
-                'completed_trips' => $trips->values(),
+                'completed_trips' => $completed->values(),
                 'average_response_delay' => round((float)$avgDelay, 1),
                 'total_revenue' => (float)$totalRevenue,
                 'average_revenue_per_trip' => $completedTripsCount > 0
@@ -410,6 +585,13 @@ class PartnerDashboardController extends Controller
             if (($user->isAdmin() || $user->isSuperAdmin()) && $request->filled('user_id')) {
                 $targetId = $request->input('user_id');
             }
+
+            // The membership shown has to belong to whoever is being viewed.
+            // Reading it off the caller meant an admin inspecting a customer
+            // saw their own premium status on that customer's page.
+            $target = (int) $targetId === (int) $user->id
+                ? $user
+                : User::find($targetId) ?? $user;
 
             $orders = Order::with(['orderItems.medicine:id,name', 'orderItems.equipment:id,name,category'])
                 ->where('user_id', $targetId)
@@ -472,6 +654,13 @@ class PartnerDashboardController extends Controller
             return response()->json([
                 'orders_count' => $orders->count(),
                 'total_spend' => round(array_sum($spend), 2),
+                // Charges that sit outside the item lines, added when delivery
+                // pricing and the premium card discount were introduced.
+                'delivery_spend' => round((float) $orders->sum('delivery_charge'), 2),
+                'premium_savings' => round((float) $orders->sum('premium_discount'), 2),
+                'subscription_savings' => round((float) $orders->sum('discount_amount'), 2),
+                'is_premium' => $target->hasActivePremium(),
+                'premium_expires_at' => $target->premium_expires_at,
                 'spend_mix' => $this->toShares($spend),
                 'category_mix' => $this->toShares(array_slice($categoryTotals, 0, 6, true)),
                 'top_items' => $this->toShares(array_slice($itemTotals, 0, 5, true)),
@@ -502,6 +691,16 @@ class PartnerDashboardController extends Controller
 
         if ($item->medicine) {
             return round((float) $item->medicine->price * max(1, $item->quantity), 2);
+        }
+
+        // Equipment had no fallback at all, so an old equipment line counted as
+        // zero and quietly shrank the customer's equipment spend.
+        if ($item->equipment) {
+            $price = $item->item_type === OrderItem::TYPE_EQUIPMENT_RENTAL
+                ? $item->equipment->price_per_day
+                : $item->equipment->sale_price;
+
+            return round((float) ($price ?? 0) * max(1, $item->quantity), 2);
         }
 
         return 0.0;

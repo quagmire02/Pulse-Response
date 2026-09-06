@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { getUserIdAction, getUserRoleAction } from "@/actions/authActions"
-import { deleteEquipmentAction } from "@/actions/equipmentActions"
+import { deleteEquipmentAction, requestEquipmentRestockAction } from "@/actions/equipmentActions"
 import { addToCart, EQUIPMENT_PURCHASE, EQUIPMENT_RENTAL } from "@/libs/cart"
 import UpdateEquipmentModal from "@/components/modals/UpdateEquipmentModal"
 import DeleteModal from "@/components/modals/DeleteModal"
@@ -26,6 +26,8 @@ export default function EquipmentDetailCard({ equipment, onUpdateSuccess, onDele
   const [cartLoading, setCartLoading] = useState("")
   const [rentalSuccess, setRentalSuccess] = useState("")
   const [rentalError, setRentalError] = useState("")
+  const [restockNotice, setRestockNotice] = useState("")
+  const [restockBusy, setRestockBusy] = useState(false)
 
   const isOwner = equipment.vendor && currentUserId == equipment.vendor.user_id
   const isAdmin = isAdminRole(currentUserRole)
@@ -42,6 +44,24 @@ export default function EquipmentDetailCard({ equipment, onUpdateSuccess, onDele
     }
     fetchUser()
   }, [])
+
+  /**
+   * Out of stock fallback, aimed at the vendor who owns this listing rather
+   * than the pharmacy team that handles medicines.
+   */
+  const handleRestockRequest = async () => {
+    setRestockBusy(true)
+    const result = await requestEquipmentRestockAction(equipment.id)
+    setRestockBusy(false)
+
+    setRestockNotice(
+      result.error
+        ? typeof result.error === "string"
+          ? result.error
+          : "Could not send the request."
+        : result.success
+    )
+  }
 
   const handleDelete = async () => {
     setDeleteLoading(true)
@@ -266,6 +286,31 @@ export default function EquipmentDetailCard({ equipment, onUpdateSuccess, onDele
               {rentalSuccess && <p className={styles.rentalSuccess}>{rentalSuccess}</p>}
               {rentalError && <p className={styles.rentalError}>{rentalError}</p>}
             </>
+          )}
+
+          {/* Generic fallback: the listing is out of action, so the only
+              useful step left is telling the vendor someone wants it. */}
+          {canRent && (!equipment.is_available || equipment.quantity <= 0) && (
+            <div className={styles.restockSection}>
+              <h3>Currently unavailable</h3>
+              <p className={styles.restockHint}>
+                This listing is out of stock. Let {equipment.vendor?.company_name || "the vendor"}{" "}
+                know you are waiting for it and you will be notified when it is back.
+              </p>
+
+              {restockNotice ? (
+                <p className={styles.restockNotice}>{restockNotice}</p>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.editBtn}
+                  onClick={handleRestockRequest}
+                  disabled={restockBusy}
+                >
+                  {restockBusy ? "Sending..." : "Notify the vendor"}
+                </button>
+              )}
+            </div>
           )}
 
           {canManage && (

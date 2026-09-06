@@ -71,19 +71,26 @@ class RegisterSignupRequest extends BaseRequest
                 )),
                 'nullable', 'string', 'max:255',
             ],
+            // Speciality and bio belong to doctors. A pharmacist supplies a
+            // pharmacy name via company_name instead.
             'speciality' => [
-                Rule::requiredIf(fn () => in_array($this->input('role'), SignupRequest::PHARMACIST_ROLES, true)),
+                Rule::requiredIf(fn () => $this->input('role') === 'doctor'),
                 'nullable', 'string', 'max:255',
             ],
             'bio' => [
-                Rule::requiredIf(fn () => in_array($this->input('role'), SignupRequest::PHARMACIST_ROLES, true)),
+                Rule::requiredIf(fn () => $this->input('role') === 'doctor'),
                 'nullable', 'string',
             ],
             'is_consultation' => ['sometimes', 'boolean'],
 
             // Vendor and ambulance company fields.
+            // Doubles as the pharmacy name for a pharmacist.
             'company_name' => [
-                Rule::requiredIf(fn () => in_array($this->input('role'), ['vendor', 'ambulance_company'], true)),
+                Rule::requiredIf(fn () => in_array(
+                    $this->input('role'),
+                    ['vendor', 'ambulance_company', 'pharmacist'],
+                    true
+                )),
                 'nullable', 'string', 'max:255',
             ],
             'description' => ['nullable', 'string'],
@@ -114,8 +121,9 @@ class RegisterSignupRequest extends BaseRequest
             $role = $this->input('role');
             $licenseNum = $this->input('license_num');
 
-            // pharmacists.license_num is an integer column.
-            if (in_array($role, SignupRequest::PHARMACIST_ROLES, true) && filled($licenseNum) && !ctype_digit((string) $licenseNum)) {
+            // Only the doctor profile stores license_num as an integer column;
+            // a pharmacist licence is free text.
+            if ($role === 'doctor' && filled($licenseNum) && !ctype_digit((string) $licenseNum)) {
                 $validator->errors()->add('license_num', 'The license number must contain digits only.');
             }
 

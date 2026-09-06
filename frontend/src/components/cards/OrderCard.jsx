@@ -2,14 +2,16 @@
 
 import styles from "./OrderCard.module.css"
 
-export default function OrderCard({ order, onClick, payment=false }) {
+export default function OrderCard({ order, onClick }) {
   const handleCardClick = () => {
-    if (payment) {
-      onClick(order.id)
-    } else {
-      onClick()
-    }
+    if (typeof onClick === "function") onClick()
   }
+
+  // Cash orders are settled by the courier, so a "pending" payment badge only
+  // worried the customer into hunting for a confirm button that should not
+  // exist. Say what actually happens instead.
+  const isCash = (order.payment_method ?? "cash") !== "card"
+  const awaitingCash = isCash && order.payment_status === "pending"
 
   const getStatusClass = (status) => {
     switch (status.toLowerCase()) {
@@ -110,23 +112,17 @@ export default function OrderCard({ order, onClick, payment=false }) {
           <div className={styles.statusItem}>
             <span className={styles.label}>Payment:</span>
             <span className={`${styles.paymentStatus} ${getPaymentStatusClass(order.payment_status)}`}>
-              {order.payment_status}
+              {awaitingCash ? "cash on delivery" : order.payment_status}
             </span>
           </div>
-
-          {
-            payment && (
-              <div className={styles.statusItem}>
-                <span className={styles.label}>Confirm:</span>
-                <span className={`${styles.paymentStatus} ${styles.payment}`}>
-                  Confirm Payment
-                </span>
-              </div>
-            )
-          }
         </div>
+
+        {awaitingCash && (
+          <p className={styles.cashNote}>
+            Pay the delivery rider when your order arrives. Nothing to confirm here.
+          </p>
+        )}
       </div>
     </div>
   )
 }
-

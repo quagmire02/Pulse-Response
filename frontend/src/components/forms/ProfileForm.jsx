@@ -4,6 +4,7 @@ import { useState } from "react"
 import { updateUserAction } from "@/actions/userActions"
 import {UpdateButton} from "@/components/buttons/buttons"
 import {DeleteButton} from "@/components/buttons/buttons"
+import { toastSuccess, toastError } from "@/libs/toast"
 import DeleteModal from "@/components/modals/DeleteModal"
 import styles from "./ProfileForm.module.css"
 
@@ -21,13 +22,24 @@ export default function ProfileForm({ userData, userId, onUserUpdate }) {
     const result = await updateUserAction(userId, formData)
 
     if (result.error) {
-      if (typeof result.error === "object") {
-        setErrors(result.error)
-      } else {
-        setErrors({ general: result.error })
-      }
+      const asObject = typeof result.error === "object" ? result.error : { general: result.error }
+
+      // Only field keys have somewhere to render. Anything else, such as the
+      // 403 the API used to return here, was dropped on the floor and the form
+      // just silently reset, so it lands in general instead.
+      const fieldKeys = ["email", "username", "first_name", "last_name", "address", "password"]
+      const leftovers = Object.entries(asObject)
+        .filter(([key]) => !fieldKeys.includes(key))
+        .map(([, value]) => (Array.isArray(value) ? value.join(" ") : value))
+        .join(" ")
+
+      const normalised = leftovers ? { ...asObject, general: leftovers } : asObject
+
+      setErrors(normalised)
+      toastError(leftovers || "Could not save your profile. Check the fields above.")
     } else if (result.success) {
       setSuccess("Profile updated successfully!")
+      toastSuccess("Profile updated successfully.")
       onUserUpdate()
     }
   }

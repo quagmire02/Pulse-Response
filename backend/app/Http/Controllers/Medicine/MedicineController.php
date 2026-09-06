@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Medicine\RegisterMedicineRequest;
 use App\Http\Requests\Medicine\UpdateMedicineRequest;
 use App\Models\Medicine;
+use App\Services\RestockNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,48 @@ class MedicineController extends Controller
     public function __construct()
     {
         $this->middleware('auth:sanctum')->except(['index', 'show', 'suggestions', 'alternatives']);
+    }
+
+    /**
+     * Who may manage the medicine catalogue.
+     *
+     * Pharmacists own the medicine catalogue the same way vendors own the
+     * equipment catalogue; admins can also step in.
+     */
+    private function canManageCatalogue(): bool
+    {
+        $user = Auth::user();
+
+        // Checks for a real pharmacist profile rather than the role string, so
+        // a doctor cannot edit the catalogue even if their role is mislabelled.
+        return $user->isAdmin()
+            || $user->isSuperAdmin()
+            || $user->isPharmacist();
+    }
+
+    /**
+     * Whether this account may change a specific listing.
+     *
+     * Admins can touch anything. A pharmacist owns what they listed, plus the
+     * unowned rows that predate the ownership column, so an existing catalogue
+     * does not become uneditable the moment the migration runs.
+     */
+    private function canManageMedicine(Medicine $medicine): bool
+    {
+        $user = Auth::user();
+
+        if ($user->isAdmin() || $user->isSuperAdmin()) {
+            return true;
+        }
+
+        $profileId = $user->pharmacistProfile?->id;
+
+        if (!$profileId) {
+            return false;
+        }
+
+        return $medicine->pharmacist_id === null
+            || (int) $medicine->pharmacist_id === (int) $profileId;
     }
 
     /**
@@ -141,7 +184,10 @@ class MedicineController extends Controller
             $medicineId = $request->input('medicine_id');
             $name = trim((string) $request->input('name', ''));
 
-            $empty = ['generic_names' => [], 'matched_by' => 'none', 'data' => []];
+            // 'requested' echoes back what the shopper was actually after, so the
+            // frontend can offer a restock request for a sold out item that the
+            // in-stock-only listing filter has already hidden from the grid.
+            $empty = ['generic_names' => [], 'matched_by' => 'none', 'data' => [], 'requested' => []];
 
             // Work out which medicines the shopper was actually after.
             $matches = collect();
@@ -165,6 +211,14 @@ class MedicineController extends Controller
             }
 
             $matchedIds = $matches->pluck('id')->all();
+            $requested = $matches->map(fn ($medicine) => [
+                'id' => $medicine->id,
+                'name' => $medicine->name,
+                'generic_name' => $medicine->generic_name,
+                'brand' => $medicine->brand,
+                'stock' => $medicine->stock,
+            ])->values();
+
             $genericNames = $matches->pluck('generic_name')
                 ->filter(fn ($generic) => filled($generic))
                 ->map(fn ($generic) => mb_strtolower(trim($generic)))
@@ -189,6 +243,7 @@ class MedicineController extends Controller
                         'generic_names' => $matches->pluck('generic_name')->filter()->unique()->values(),
                         'matched_by' => 'generic_name',
                         'data' => $alternatives,
+                        'requested' => $requested,
                     ], 200);
                 }
             }
@@ -212,11 +267,14 @@ class MedicineController extends Controller
                         'generic_names' => $matches->pluck('generic_name')->filter()->unique()->values(),
                         'matched_by' => 'category',
                         'data' => $alternatives,
+                        'requested' => $requested,
                     ], 200);
                 }
             }
 
-            return response()->json($empty, 200);
+            // Genuine dead end. The caller still gets what was searched for, so
+            // it can offer to notify the pharmacy instead of showing nothing.
+            return response()->json(array_merge($empty, ['requested' => $requested]), 200);
         } catch (\Exception $e) {
             Log::error($e);
             return response()->json([
@@ -225,6 +283,39 @@ class MedicineController extends Controller
         }
     }
 
+    /**
+     * Generic fallback for a sold out medicine: push the demand to the pharmacy
+     * team so someone can restock it.
+     *
+     * Reached from the shopper facing "nothing to recommend" panel, which is the
+     * only place the alternatives search can end without a suggestion.
+     */
+    public function requestRestock(string $id, RestockNotifier $notifier): JsonResponse
+    {
+        try {
+            $medicine = Medicine::find($id);
+
+            if (!$medicine) {
+                return response()->json(['errors' => 'Medicine not found.'], 404);
+            }
+
+            if ($medicine->stock > 0) {
+                return response()->json(['errors' => 'This medicine is back in stock.'], 409);
+            }
+
+            $result = $notifier->medicineOutOfStock($medicine, Auth::user());
+
+            return response()->json([
+                'success' => $result['throttled']
+                    ? 'The pharmacy has already been told about this one.'
+                    : 'The pharmacy team has been notified. You will get a notification when it is back.',
+                'notified' => $result['notified'],
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
+        }
+    }
     private function imageHandler(Request $request, array &$validated, ?Medicine $medicine = null): void
     {
         if ($request->hasFile('image_url')) {
@@ -311,6 +402,25 @@ class MedicineController extends Controller
     {
         try {
             $query = Medicine::query();
+
+            // Manage Medicines sends mine=1 so a pharmacist works on their own
+            // shelf instead of scrolling the whole platform catalogue and
+            // hitting a 403 on the first edit they try.
+            if ($request->boolean('mine') && Auth::check()) {
+                $user = Auth::user();
+
+                // Admins manage everything, so the filter is a no-op for them.
+                if (!$user->isAdmin() && !$user->isSuperAdmin()) {
+                    $profileId = $user->pharmacistProfile?->id;
+
+                    // Unowned rows are included because they predate ownership
+                    // and are still this pharmacist's to edit.
+                    $query->where(function ($q) use ($profileId) {
+                        $q->where('pharmacist_id', $profileId)
+                          ->orWhereNull('pharmacist_id');
+                    });
+                }
+            }
 
             if ($request->has('category') && $request->input('category') !== '') {
                 $categoryName = $request->input('category');
@@ -470,7 +580,7 @@ class MedicineController extends Controller
      */
     public function create(RegisterMedicineRequest $request): JsonResponse
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!$this->canManageCatalogue()) {
             return response()->json([
                 'errors' => 'You are not authorized to create a medicine.',
             ], 403);
@@ -484,6 +594,11 @@ class MedicineController extends Controller
         unset($validated['category_ids']);
 
         try {
+            // Stamp the owner so this listing shows up in that pharmacist's
+            // sales figures and nobody else's. Admin created rows stay
+            // unowned, which is what null means here.
+            $validated['pharmacist_id'] = Auth::user()->pharmacistProfile?->id;
+
             $medicine = Medicine::create($validated);
             $medicine->categories()->attach($categoryIds);
 
@@ -573,7 +688,7 @@ class MedicineController extends Controller
      */
     public function update(UpdateMedicineRequest $request, string $medicine): JsonResponse
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!$this->canManageCatalogue()) {
             return response()->json([
                 'error' => 'You are not authorized to update this medicine.',
             ], 403);
@@ -588,6 +703,12 @@ class MedicineController extends Controller
                 return response()->json([
                     'errors' => 'Medicine not found',
                 ], 404);
+            }
+
+            if (!$this->canManageMedicine($foundMedicine)) {
+                return response()->json([
+                    'errors' => 'This medicine belongs to another pharmacy.',
+                ], 403);
             }
 
             $this->imageHandler($request, $validated, $foundMedicine);
@@ -645,7 +766,7 @@ class MedicineController extends Controller
      */
     public function destroy(Request $request, string $medicine): JsonResponse
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!$this->canManageCatalogue()) {
             return response()->json([
                 'errors' => 'You are not authorized to delete this medicine.',
             ], 403);
@@ -658,6 +779,12 @@ class MedicineController extends Controller
                 return response()->json([
                     'errors' => 'Medicine not found',
                 ], 404);
+            }
+
+            if (!$this->canManageMedicine($foundMedicine)) {
+                return response()->json([
+                    'errors' => 'This medicine belongs to another pharmacy.',
+                ], 403);
             }
 
             $this->deleteOldImage($foundMedicine->image_url);

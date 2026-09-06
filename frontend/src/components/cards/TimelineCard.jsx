@@ -2,10 +2,123 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
+import { getLedgerEntryAction } from "@/actions/ledgerActions"
 import styles from "./TimelineCard.module.css"
+
+const money = (value) => `$${Number(value ?? 0).toFixed(2)}`
+
+const readableDate = (value) =>
+  value ? new Date(value).toLocaleString() : "N/A"
+
+/**
+ * Turn one fetched record into label/value pairs. Each timeline type has a
+ * different shape, so the mapping lives here rather than in the markup.
+ */
+function summarise(type, data) {
+  // Both order categories return the same order record, so they read the same.
+  if (type === "purchase" || type === "equipment_purchase") {
+    const items = (data.order_items || [])
+      .map((line) => {
+        const name = line.medicine?.name || line.equipment?.name || "Item"
+        return `${line.quantity} x ${name}`
+      })
+      .join(", ")
+
+    return {
+      "Order": `#${data.id}`,
+      "Placed": readableDate(data.order_date),
+      "Items": items || "None",
+      "Order status": data.order_status,
+      "Payment status": data.payment_status,
+      "Delivery": data.delivery?.delivery_type || "N/A",
+      "Tracking": data.delivery?.track_num || "N/A",
+      "Address": data.delivery_address || "N/A",
+      "Total": money(data.total_amount),
+    }
+  }
+
+  if (type === "equipment") {
+    return {
+      "Rental": `#${data.id}`,
+      "Equipment": data.equipment?.name || "N/A",
+      "Supplier": data.vendor?.company_name || "N/A",
+      "Contact": data.vendor?.contact_phone || "N/A",
+      "From": data.rental_start,
+      "To": data.rental_end,
+      "Status": data.status,
+      "Total": money(data.total_price),
+    }
+  }
+
+  if (type === "consultation") {
+    const doctor = data.slot?.pharmacist?.user
+    return {
+      "Consultation": `#${data.id}`,
+      "Doctor": doctor
+        ? `${doctor.first_name || ""} ${doctor.last_name || ""}`.trim() || doctor.username
+        : "N/A",
+      "Date": data.slot?.date || "N/A",
+      "Time": data.slot ? `${data.slot.start_time}:00` : "N/A",
+      "Status": data.status || "booked",
+    }
+  }
+
+  if (type === "emergency") {
+    return {
+      "Alert": `#${data.id}`,
+      "Type": String(data.alert_type || "").replace(/_/g, " "),
+      "Location": data.location,
+      "Status": data.status,
+      "Ambulance": data.assigned_vehicle?.vehicle_number || "Not assigned",
+      "ETA given": data.assigned_eta_minutes ? `${data.assigned_eta_minutes} min` : "N/A",
+      "Raised": readableDate(data.created_at),
+    }
+  }
+
+  return {
+    "Payment": `#${data.id}`,
+    "Order": `#${data.order_id}`,
+    "Method": String(data.payment_type || "").toUpperCase(),
+    "Paid at": readableDate(data.payment_date),
+    "Order total": money(data.order?.total_amount),
+  }
+}
 
 export default function TimelineCard({ item }) {
   const [showReceipt, setShowReceipt] = useState(false)
+  const [showDetail, setShowDetail] = useState(false)
+  const [detail, setDetail] = useState(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
+  const [detailError, setDetailError] = useState("")
+
+  const toggleDetail = async () => {
+    if (showDetail) {
+      setShowDetail(false)
+      return
+    }
+
+    // Fetch once, then just re-open on subsequent clicks.
+    if (detail) {
+      setShowDetail(true)
+      return
+    }
+
+    setLoadingDetail(true)
+    setDetailError("")
+
+    const result = await getLedgerEntryAction(item.type, item.id)
+    setLoadingDetail(false)
+
+    if (result.error) {
+      setDetailError(
+        typeof result.error === "string" ? result.error : "Could not load this record."
+      )
+      return
+    }
+
+    setDetail(result.data)
+    setShowDetail(true)
+  }
 
   const getTypeStyles = (type) => {
     switch (type) {
@@ -14,6 +127,12 @@ export default function TimelineCard({ item }) {
           icon: "💊",
           label: "Medicine Purchase",
           colorClass: styles.purchase,
+        }
+      case "equipment_purchase":
+        return {
+          icon: "🛒",
+          label: "Equipment Purchase",
+          colorClass: styles.equipmentPurchase,
         }
       case "equipment":
         return {
@@ -90,15 +209,14 @@ export default function TimelineCard({ item }) {
             {item.status || "Completed"}
           </span>
 
-          {item.type === "purchase" && (
-            <Link href={`/orders`} className={styles.actionBtn}>
-              View Orders ➔
-            </Link>
-          )}
+          {/* Loads only this record, instead of sending the user to a list. */}
+          <button onClick={toggleDetail} className={styles.actionBtn} disabled={loadingDetail}>
+            {loadingDetail ? "Loading..." : showDetail ? "Hide details" : "View details"}
+          </button>
 
-          {item.type === "equipment" && item.details?.equipment_name && (
-            <Link href={`/equipment`} className={styles.actionBtn}>
-              View Equipment listings ➔
+          {(item.type === "purchase" || item.type === "equipment_purchase") && (
+            <Link href={`/orders/${item.id}`} className={styles.actionBtn}>
+              Open order #{item.id}
             </Link>
           )}
 
@@ -108,6 +226,19 @@ export default function TimelineCard({ item }) {
             </button>
           )}
         </div>
+
+        {detailError && <div className={styles.detailError}>{detailError}</div>}
+
+        {showDetail && detail && (
+          <div className={styles.detailPanel}>
+            {Object.entries(summarise(item.type, detail)).map(([label, value]) => (
+              <div key={label} className={styles.detailRow}>
+                <span>{label}</span>
+                <strong>{value}</strong>
+              </div>
+            ))}
+          </div>
+        )}
 
         {showReceipt && item.type === "payment" && (
           <div className={styles.receipt}>
