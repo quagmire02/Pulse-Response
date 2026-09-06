@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getNotificationsAction } from "@/actions/notificationsActions"
 import NotificationCard from "@/components/cards/NotificationCard"
 import Pagination from "@/components/paginations/Pagination"
 import styles from "./page.module.css"
 
-export default function NotificationsPage() {
+function NotificationsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -99,4 +99,17 @@ export default function NotificationsPage() {
       </div>
     </div>
   )
+}
+
+/**
+ * useSearchParams needs a Suspense boundary or the production build cannot
+ * prerender this route. The page is behind auth and query driven, so the
+ * boundary is the correct fix rather than opting out of prerendering.
+ */
+export default function NotificationsPage() {
+  return (
+    <Suspense fallback={null}>
+      <NotificationsPageContent />
+    </Suspense>
+  );
 }

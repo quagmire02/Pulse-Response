@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getPaymentsAction } from "@/actions/paymentActions"
 import PaymentCard from "@/components/cards/PaymentCard"
@@ -8,7 +8,7 @@ import Link from "next/link"
 import Pagination from "@/components/paginations/Pagination"
 import styles from "./page.module.css"
 
-export default function PaymentsPage() {
+function PaymentsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -92,4 +92,17 @@ export default function PaymentsPage() {
       )}
     </div>
   )
+}
+
+/**
+ * useSearchParams needs a Suspense boundary or the production build cannot
+ * prerender this route. The page is behind auth and query driven, so the
+ * boundary is the correct fix rather than opting out of prerendering.
+ */
+export default function PaymentsPage() {
+  return (
+    <Suspense fallback={null}>
+      <PaymentsPageContent />
+    </Suspense>
+  );
 }

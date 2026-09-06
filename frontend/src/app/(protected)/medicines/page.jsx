@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getCategoriesAction } from "@/actions/categoryActions"
 import {
@@ -19,7 +19,7 @@ import styles from "./page.module.css"
 const SUGGESTION_MIN_CHARS = 1
 const SUGGESTION_DEBOUNCE_MS = 150
 
-export default function MedicinesPage() {
+function MedicinesPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -399,4 +399,17 @@ export default function MedicinesPage() {
       </div>
     </div>
   )
+}
+
+/**
+ * useSearchParams needs a Suspense boundary or the production build cannot
+ * prerender this route. The page is behind auth and query driven, so the
+ * boundary is the correct fix rather than opting out of prerendering.
+ */
+export default function MedicinesPage() {
+  return (
+    <Suspense fallback={null}>
+      <MedicinesPageContent />
+    </Suspense>
+  );
 }
