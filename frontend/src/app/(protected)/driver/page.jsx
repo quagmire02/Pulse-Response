@@ -8,6 +8,7 @@ import {
   setAmbulanceStatusAction,
   completeAmbulanceAssignmentAction,
 } from "@/actions/ambulanceActions"
+import LiveMap from "@/components/map/LiveMap"
 import styles from "./page.module.css"
 
 // How often the device reports its position while the driver is on duty.
@@ -54,6 +55,21 @@ export default function DriverPage() {
 
     setVehicle(result.data.vehicle)
     setAssignment(result.data.assignment)
+
+    // Duty lives on the server, so a refresh must not quietly drop the driver
+    // out of the dispatch pool. Anything but maintenance means still on duty.
+    const stillOnDuty = result.data.vehicle?.status !== "maintenance"
+    setOnDuty(stillOnDuty)
+
+    // Resume position reporting after a refresh. The guard stops the 20 second
+    // poll from stacking a second geolocation watcher on every tick.
+    if (stillOnDuty && watchIdRef.current === null) {
+      startTracking()
+    }
+
+    if (result.data.vehicle?.last_ping_at) {
+      setLastPing(new Date(result.data.vehicle.last_ping_at))
+    }
     setError("")
     setLoading(false)
   }
@@ -196,14 +212,6 @@ export default function DriverPage() {
 
         <div className={styles.statusRow}>
           <div className={styles.statusItem}>
-            <span className={styles.statusLabel}>Current position</span>
-            <span className={styles.statusValue}>
-              {position
-                ? `${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`
-                : "Not sharing"}
-            </span>
-          </div>
-          <div className={styles.statusItem}>
             <span className={styles.statusLabel}>Last reported</span>
             <span className={styles.statusValue}>
               {lastPing ? lastPing.toLocaleTimeString() : "Never"}
@@ -214,6 +222,14 @@ export default function DriverPage() {
             <span className={styles.statusValue}>{vehicle.status}</span>
           </div>
         </div>
+
+        {/* Live position with a readable address, not just coordinates. */}
+        <LiveMap
+          latitude={position?.latitude ?? vehicle.current_lat}
+          longitude={position?.longitude ?? vehicle.current_lng}
+          label="Your position"
+          height={240}
+        />
 
         <button
           className={onDuty ? styles.dangerBtn : styles.primaryBtn}
@@ -255,34 +271,15 @@ export default function DriverPage() {
 
             {assignment.notes && <p className={styles.notes}>Notes: {assignment.notes}</p>}
 
-            {assignment.latitude && assignment.longitude && (
-              <div className={styles.mapActions}>
-                <a
-                  className={styles.secondaryBtn}
-                  href={
-                    position
-                      ? `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${position.latitude},${position.longitude};${assignment.latitude},${assignment.longitude}`
-                      : `https://www.openstreetmap.org/?mlat=${assignment.latitude}&mlon=${assignment.longitude}#map=16/${assignment.latitude}/${assignment.longitude}`
-                  }
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {position ? "Open route" : "Open destination on map"}
-                </a>
-              </div>
-            )}
-
-            {assignment.latitude && assignment.longitude && (
-              <iframe
-                className={styles.map}
-                title="Emergency location"
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${
-                  Number(assignment.longitude) - 0.01
-                },${Number(assignment.latitude) - 0.01},${Number(assignment.longitude) + 0.01},${
-                  Number(assignment.latitude) + 0.01
-                }&layer=mapnik&marker=${assignment.latitude},${assignment.longitude}`}
-              />
-            )}
+            {/* Destination map, with a route link back from your own position. */}
+            <LiveMap
+              latitude={assignment.latitude}
+              longitude={assignment.longitude}
+              fromLat={position?.latitude}
+              fromLng={position?.longitude}
+              label="Emergency location"
+              height={260}
+            />
 
             <button className={styles.primaryBtn} onClick={handleComplete}>
               Mark as completed

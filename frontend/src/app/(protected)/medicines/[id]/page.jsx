@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { getMedicineAction, getMedicineAlternativesAction } from "@/actions/medicineActions"
+import {
+  getMedicineAction,
+  getMedicineAlternativesAction,
+  requestMedicineRestockAction,
+} from "@/actions/medicineActions"
 import { getUserRoleAction } from "@/actions/authActions"
 import { isCustomerRole } from "@/libs/roles"
 import MedicineDetailCard from "@/components/cards/MedicineDetailCard"
@@ -19,6 +23,8 @@ export default function MedicineDetailPage() {
   const [alternatives, setAlternatives] = useState([])
   const [alternativeGenerics, setAlternativeGenerics] = useState([])
   const [alternativesLoading, setAlternativesLoading] = useState(false)
+  const [restockNotice, setRestockNotice] = useState("")
+  const [restockBusy, setRestockBusy] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,6 +71,24 @@ export default function MedicineDetailPage() {
 
     fetchData()
   }, [params.id])
+
+  /**
+   * Generic fallback. Reached only when this item is sold out and the
+   * alternatives search came back empty, so nothing else can be suggested.
+   */
+  const handleRestockRequest = async () => {
+    setRestockBusy(true)
+    const result = await requestMedicineRestockAction(medicine.id)
+    setRestockBusy(false)
+
+    setRestockNotice(
+      result.error
+        ? typeof result.error === "string"
+          ? result.error
+          : "Could not send the request."
+        : result.success
+    )
+  }
 
   
   if (loading) {
@@ -139,9 +163,26 @@ export default function MedicineDetailPage() {
               ))}
             </div>
           ) : (
-            <p className={styles.noAlternatives}>
-              No in-stock alternatives found with the same chemical name or category.
-            </p>
+            <div className={styles.noAlternatives}>
+              <p>No in-stock alternatives found with the same chemical name or category.</p>
+
+              {/* Nothing left to recommend, so pass the demand to the pharmacy. */}
+              {restockNotice ? (
+                <p className={styles.restockNotice}>{restockNotice}</p>
+              ) : (
+                canOrder && (
+                  <button
+                    type="button"
+                    className="pr-btn pr-btn-primary"
+                    onClick={handleRestockRequest}
+                    disabled={restockBusy}
+                    style={{ marginTop: "12px" }}
+                  >
+                    {restockBusy ? "Sending..." : "Notify the pharmacy"}
+                  </button>
+                )
+              )}
+            </div>
           )}
         </div>
       )}

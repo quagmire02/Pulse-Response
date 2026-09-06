@@ -9,12 +9,12 @@ export const SIGNUP_ROLES = [
   {
     value: "pharmacist",
     label: "Pharmacist",
-    description: "Manage a pharmacy profile and offer consultations.",
+    description: "Manage the medicine catalogue for your pharmacy. Does not take consultations.",
   },
   {
     value: "doctor",
     label: "Doctor",
-    description: "Publish consultation slots and review patient history.",
+    description: "Publish consultation slots and see patients. Does not manage medicines.",
   },
   {
     value: "vendor",
@@ -50,11 +50,13 @@ export const ROLE_LABELS = {
   super_admin: "Super Admin",
 };
 
-// Roles that submit a pharmacist profile (license, speciality, bio).
-export const PHARMACIST_ROLES = ["pharmacist", "doctor"];
+// Only doctors publish consultation slots, so only they give a speciality
+// and bio. Pharmacists are a separate profession that manages medicines.
+export const DOCTOR_ROLES = ["doctor"];
 
-// Roles that run a company and therefore need a company name.
-export const COMPANY_ROLES = ["vendor", "ambulance_company"];
+// Roles that need an organisation name. A pharmacist supplies their pharmacy
+// name through the same field.
+export const COMPANY_ROLES = ["vendor", "ambulance_company", "pharmacist"];
 
 // Roles that must supply a licence number of some kind.
 export const LICENSED_ROLES = ["pharmacist", "doctor", "vendor", "ambulance_company", "driver"];

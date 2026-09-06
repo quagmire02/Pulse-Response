@@ -325,3 +325,15 @@
     text-align: center;
   }
 }
+/* Explains that "Delivered" is also the cash receipt, so an admin is not left
+   looking for a payment step that no longer exists. */
+.cashHint {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  color: #0f766e;
+  line-height: 1.55;
+}

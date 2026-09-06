@@ -9,6 +9,7 @@ import { getVendorAction } from "@/actions/vendorActions"
 import { getAmbulanceCompanyAction, getMyAmbulanceAction } from "@/actions/ambulanceActions"
 import { getVolunteerProfileAction } from "@/actions/volunteerActions"
 import { isAdminRole, isCustomerRole } from "@/libs/roles"
+import NotificationBell from "./NotificationBell"
 import styles from "./Navbar.module.css"
 
 export default function Navbar() {
@@ -81,11 +82,15 @@ export default function Navbar() {
           <div className={styles.logo} onClick={() => handleNavigation("/")}>
             <span>Pulse Response</span>
           </div>
-          <button className={styles.menuButton} onClick={toggleMenu}>
-            <span className={styles.hamburger}></span>
-            <span className={styles.hamburger}></span>
-            <span className={styles.hamburger}></span>
-          </button>
+          <div className={styles.navActions}>
+            {/* Every role gets notifications, so the bell is unconditional. */}
+            <NotificationBell />
+            <button className={styles.menuButton} onClick={toggleMenu}>
+              <span className={styles.hamburger}></span>
+              <span className={styles.hamburger}></span>
+              <span className={styles.hamburger}></span>
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -111,8 +116,10 @@ export default function Navbar() {
           <button className={styles.menuItem} onClick={() => handleNavigation("/equipment")}>
             Equipments
           </button>
+          {/* Route stays /pharmacist because that table holds the doctor
+              profiles; the label says what these people actually are. */}
           <button className={styles.menuItem} onClick={() => handleNavigation("/pharmacist")}>
-            Pharmacists
+            Consultants
           </button>
 
           {(isCustomer || isAdmin) && (
@@ -130,7 +137,7 @@ export default function Navbar() {
                 Subscriptions
               </button>
               <button className={styles.menuItem} onClick={() => handleNavigation("/membership")}>
-                Card Details
+                Premium Membership
               </button>
               <button className={styles.menuItem} onClick={() => handleNavigation("/payment")}>
                 Payment History
@@ -142,7 +149,7 @@ export default function Navbar() {
           )}
 
           <button className={styles.menuItem} onClick={() => handleNavigation("/history")}>
-            Medical Ledger
+            Medical Ledger 📋
           </button>
           <button className={styles.menuItem} onClick={() => handleNavigation("/notification")}>
             Notifications
@@ -151,6 +158,13 @@ export default function Navbar() {
           {isDoctor && (
             <button className={styles.menuItem} onClick={() => handleNavigation(`/pharmacist/${userId}`)}>
               My Doctor Profile
+            </button>
+          )}
+
+          {/* Pharmacists own the medicine catalogue, the way vendors own equipment. */}
+          {userRole === "pharmacist" && (
+            <button className={styles.menuItem} onClick={() => handleNavigation("/admin-dashboard/medicines")}>
+              Manage Medicines
             </button>
           )}
 

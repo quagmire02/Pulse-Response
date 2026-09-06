@@ -3,7 +3,7 @@
 import { useState } from "react"
 import {SignupButton} from "@/components/buttons/buttons"
 import { createSignupRequestAction } from "@/actions/signupRequestActions"
-import { SIGNUP_ROLES, PHARMACIST_ROLES, COMPANY_ROLES, LICENSED_ROLES } from "@/libs/roles"
+import { SIGNUP_ROLES, DOCTOR_ROLES, COMPANY_ROLES, LICENSED_ROLES } from "@/libs/roles"
 import styles from "./SignupForm.module.css"
 
 
@@ -13,8 +13,9 @@ export default function SignupForm() {
   const [success, setSuccess] = useState("")
   const [role, setRole] = useState("user")
 
-  const needsPharmacistFields = PHARMACIST_ROLES.includes(role)
+  const needsDoctorFields = DOCTOR_ROLES.includes(role)
   const needsCompanyFields = COMPANY_ROLES.includes(role)
+  const isPharmacist = role === "pharmacist"
   const needsLicense = LICENSED_ROLES.includes(role)
   const selectedRole = SIGNUP_ROLES.find((option) => option.value === role)
 
@@ -55,8 +56,11 @@ export default function SignupForm() {
         {errors.role && <span className={styles.error}>{errors.role}</span>}
       </div>
 
+      {/* Customers are created straight away; only licensed roles are vetted. */}
       <div className={styles.notice}>
-        Every account is reviewed by an admin. You will be able to log in once your request is approved.
+        {role === "user"
+          ? "Your account is created immediately, you can log in as soon as you sign up."
+          : "This account type is reviewed by an admin. You will be able to log in once it is approved."}
       </div>
 
       <div className={styles.formGroup}>
@@ -144,7 +148,7 @@ export default function SignupForm() {
         </div>
       )}
 
-      {needsPharmacistFields && (
+      {needsDoctorFields && (
         <>
           <div className={styles.formGroup}>
             <label htmlFor="speciality" className={styles.label}>
@@ -202,7 +206,7 @@ export default function SignupForm() {
         <>
           <div className={styles.formGroup}>
             <label htmlFor="company_name" className={styles.label}>
-              Company Name *
+              {isPharmacist ? "Pharmacy Name *" : "Company Name *"}
             </label>
             <input
               type="text"

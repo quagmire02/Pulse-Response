@@ -7,8 +7,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\Auth\AuthRequest;
 use App\Http\Controllers\Controller;
+use App\Models\AmbulanceVehicle;
 use App\Models\SignupRequest;
 use App\Models\User;
+use App\Models\Volunteer;
 use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Support\Facades\Log;
 
@@ -135,8 +137,15 @@ class AuthController extends Controller
     public function logout(): JsonResponse
     {
         try {
+            $user = Auth::user();
+
+            // Duty is a live signal, not a saved preference: a driver or
+            // volunteer who signs out is no longer reachable, so they must
+            // leave the dispatch pool with them.
+            $this->standDownFromDuty($user);
+
             /** @var PersonalAccessToken $accessToken */
-            Auth::user()->currentAccessToken()->delete();
+            $user->currentAccessToken()->delete();
 
             return response()->json([
                 'success' => 'Successfully logged out.',
@@ -146,6 +155,26 @@ class AuthController extends Controller
             return response()->json([
                 'errors' => 'An unexpected error occurred.'
             ], 500);
+        }
+    }
+
+    /**
+     * Take a signing out driver or volunteer off duty.
+     *
+     * Clearing the last ping is what actually removes them, since both dispatch
+     * scans require a position reported within the last few minutes. Failures
+     * are swallowed: nothing here should stop someone logging out.
+     */
+    private function standDownFromDuty(User $user): void
+    {
+        try {
+            AmbulanceVehicle::where('driver_user_id', $user->id)
+                ->update(['status' => 'maintenance', 'last_ping_at' => null]);
+
+            Volunteer::where('user_id', $user->id)
+                ->update(['is_available' => false, 'last_ping_at' => null]);
+        } catch (\Exception $e) {
+            Log::error('Failed to stand user down from duty on logout: ' . $e->getMessage());
         }
     }
 }

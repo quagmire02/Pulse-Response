@@ -88,6 +88,98 @@ class EmergencyAlertController extends Controller
     }
 
     /**
+     * Live tracking for the patient who raised the alert.
+     *
+     * Returns where the assigned ambulance actually is right now, not just the
+     * coordinates it was dispatched from. The frontend polls this while the
+     * vehicle is en route so the marker moves.
+     */
+    public function tracking(?string $alert = null): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            $query = EmergencyAlert::with([
+                'assignedVehicle:id,ambulance_company_id,driver_user_id,vehicle_number,model,status,current_lat,current_lng,last_ping_at',
+                'assignedVehicle.company:id,company_name,contact_phone',
+                'assignedVehicle.driver:id,username,first_name,last_name',
+            ])->where('user_id', $user->id);
+
+            if ($alert) {
+                $query->where('id', $alert);
+            } else {
+                // No id given means "whatever is happening to me right now".
+                $query->whereIn('status', ['pending', 'dispatched'])->latest('id');
+            }
+
+            $emergency = $query->first();
+
+            if (!$emergency) {
+                return response()->json(['data' => null], 200);
+            }
+
+            $vehicle = $emergency->assignedVehicle;
+            $volunteers = $this->volunteers->respondersFor($emergency);
+
+            return response()->json([
+                'data' => [
+                    'alert' => [
+                        'id' => $emergency->id,
+                        'alert_type' => $emergency->alert_type,
+                        'status' => $emergency->status,
+                        'location' => $emergency->location,
+                        'latitude' => $emergency->latitude,
+                        'longitude' => $emergency->longitude,
+                        'eta_minutes' => $emergency->assigned_eta_minutes,
+                        'distance_km' => $emergency->assigned_distance_km,
+                        'created_at' => $emergency->created_at,
+                    ],
+                    'ambulance' => $vehicle ? [
+                        'vehicle_number' => $vehicle->vehicle_number,
+                        'model' => $vehicle->model,
+                        'status' => $vehicle->status,
+                        // Where it is now, which is the point of this endpoint.
+                        'latitude' => $vehicle->current_lat,
+                        'longitude' => $vehicle->current_lng,
+                        'last_ping_at' => $vehicle->last_ping_at,
+                        'is_online' => $vehicle->isOnline(),
+                        'driver_name' => $vehicle->driver->username ?? null,
+                        'company_name' => $vehicle->company->company_name ?? null,
+                        // Users have no phone column, so the dispatch desk
+                        // number is the real contact we can offer.
+                        'contact_phone' => $vehicle->company->contact_phone ?? null,
+                        // Straight line, recalculated from the live position
+                        // rather than reusing the distance fixed at dispatch.
+                        'remaining_km' => $this->remainingKm($emergency, $vehicle),
+                    ] : null,
+                    'volunteers' => $volunteers,
+                ],
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json(['errors' => 'Failed to load tracking information.'], 500);
+        }
+    }
+
+    /**
+     * How far the ambulance still has to travel, from its latest ping.
+     */
+    private function remainingKm(EmergencyAlert $alert, $vehicle): ?float
+    {
+        if ($alert->latitude === null || $alert->longitude === null
+            || $vehicle->current_lat === null || $vehicle->current_lng === null) {
+            return null;
+        }
+
+        return round($this->dispatch->distanceKm(
+            (float) $vehicle->current_lat,
+            (float) $vehicle->current_lng,
+            (float) $alert->latitude,
+            (float) $alert->longitude
+        ), 2);
+    }
+
+    /**
      * Find the closest online ambulance, reserve it, open a trip and tell the driver.
      *
      * @return array<string, mixed>|null
@@ -126,6 +218,9 @@ class EmergencyAlertController extends Controller
                 'emergency_alert_id' => $alert->id,
                 'patient_name' => $alert->user->username ?? null,
                 'dispatch_time' => now(),
+                // The callout fare, so the ambulance company's revenue
+                // reporting has something to report.
+                'revenue' => AmbulanceTrip::calculateFare($route['distance_km']),
             ]);
 
             if ($vehicle->driver_user_id) {

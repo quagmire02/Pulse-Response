@@ -165,7 +165,9 @@ class NotificationController extends Controller
             $isRead = $unreadCount === 0;
 
             return response()->json([
-                'is_read' => $isRead
+                'is_read' => $isRead,
+                // The bell needs the number, not just whether any exist.
+                'unread_count' => $unreadCount,
             ], 200);
         } catch (\Exception $e) {
             Log::error($e);

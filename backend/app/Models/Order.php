@@ -9,9 +9,6 @@ class Order extends Model
 {
     use HasFactory;
 
-    public const CREATED_AT = null;
-    public const UPDATED_AT = null;
-
     protected $fillable = [
         'user_id',
         'total_amount',
@@ -19,6 +16,7 @@ class Order extends Model
         'order_date',
         'order_status',
         'payment_status',
+        'payment_method',
         'subscribe_type',
         'next_delivery_date',
         'is_subscription_renewal',
@@ -28,18 +26,54 @@ class Order extends Model
         'delivery_notes',
         'preferred_handover_date',
         'unsubscribed_at',
+        'delivery_charge',
+        'premium_discount',
     ];
 
     protected $casts = [
-        'order_date' => 'date',
+        // datetime, not date: the ledger needs the actual time of day.
+        'order_date' => 'datetime',
         'next_delivery_date' => 'date',
         'preferred_handover_date' => 'date',
         'unsubscribed_at' => 'datetime',
         'is_subscription_renewal' => 'boolean',
     ];
 
+    public const PAYMENT_CASH = 'cash';
+    public const PAYMENT_CARD = 'card';
+
+    /**
+     * Delivery charges, the single source of truth.
+     *
+     * The checkout summary and the order total used to read from two different
+     * tables, so basic delivery displayed a charge that was never added and the
+     * faster options were billed at half what was shown.
+     */
+    public const DELIVERY_CHARGES = [
+        'basic' => 10.00,
+        'rapid' => 20.00,
+        'emergency' => 35.00,
+    ];
+
+    /**
+     * Cash orders are settled by the courier, not in the app. Nothing should
+     * ask the customer to confirm a payment they have not handed over yet.
+     */
+    public function isCashOnDelivery(): bool
+    {
+        return ($this->payment_method ?? self::PAYMENT_CASH) !== self::PAYMENT_CARD;
+    }
+
+    /** Discount premium members get when paying by card. */
+    public const PREMIUM_CARD_DISCOUNT_RATE = 0.10;
+
     /** Loyalty discount applied to every automatic renewal. */
     public const RENEWAL_DISCOUNT_RATE = 0.10;
+
+    public static function deliveryCharge(?string $type): float
+    {
+        return (float) (self::DELIVERY_CHARGES[$type] ?? self::DELIVERY_CHARGES['basic']);
+    }
 
     /** How far ahead of the next delivery a subscription may be cancelled. */
     public const CANCELLATION_NOTICE_DAYS = 7;

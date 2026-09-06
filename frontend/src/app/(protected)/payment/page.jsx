@@ -57,11 +57,12 @@ export default function PaymentsPage() {
           Back to Home 
         </Link> 
       </div> 
-      <div className={styles.confirmSection}> 
-        <Link href="/orders/pending" className={styles.confirmButton}> 
-          Confirm Order Payment 
-        </Link> 
-      </div> 
+      {/* Cash orders settle when the rider hands the goods over, so there is
+          nothing for the customer to confirm here. */}
+      <p className={styles.cashNotice}>
+        Cash orders are marked paid automatically once the delivery is completed.
+        You will get a notification the moment the payment is recorded.
+      </p>
 
       {loading ? (
         <div className={styles.loading}>Loading payments...</div>

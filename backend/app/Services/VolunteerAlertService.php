@@ -106,6 +106,35 @@ class VolunteerAlertService
     }
 
     /**
+     * Volunteers who have logged that they attended this incident.
+     *
+     * Feeds the patient's tracking panel, so they can see that help is already
+     * with them rather than only that an ambulance is coming.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function respondersFor(EmergencyAlert $alert): array
+    {
+        try {
+            return VolunteerAlert::with('volunteer.user:id,username')
+                ->where('emergency_alert_id', $alert->id)
+                ->where('status', VolunteerAlert::STATUS_RESPONDED)
+                ->orderBy('responded_at')
+                ->get()
+                ->map(fn ($record) => [
+                    'name' => $record->volunteer->user->username ?? 'A volunteer',
+                    'skills' => $record->volunteer->skills ?? null,
+                    'distance_km' => $record->distance_km,
+                    'responded_at' => $record->responded_at,
+                ])
+                ->all();
+        } catch (\Exception $e) {
+            Log::error('Loading volunteer responders failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Close out every volunteer record for an incident once the ambulance has
      * arrived or the alert was cancelled, so their console stops showing it as
      * ongoing.

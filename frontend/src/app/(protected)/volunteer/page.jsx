@@ -12,6 +12,7 @@ import {
   applyVolunteerRewardAction,
 } from "@/actions/volunteerActions"
 import { StatTile } from "@/components/charts/Charts"
+import LiveMap from "@/components/map/LiveMap"
 import styles from "./page.module.css"
 
 const PING_INTERVAL_MS = 20000
@@ -68,7 +69,16 @@ export default function VolunteerPage() {
     setProfile(profileResult.data.volunteer)
     setAlerts(profileResult.data.alerts || [])
     setRewards(profileResult.data.rewards || [])
-    setOnDuty(Boolean(profileResult.data.volunteer?.is_available))
+
+    // Duty is held server side, so a refresh keeps the volunteer on duty. The
+    // watcher has to be restarted too, otherwise the badge would say on duty
+    // while the position quietly went stale and the scan skipped them.
+    const stillOnDuty = Boolean(profileResult.data.volunteer?.is_available)
+    setOnDuty(stillOnDuty)
+
+    if (stillOnDuty && watchIdRef.current === null) {
+      startTracking()
+    }
 
     if (!statsResult.error) setStats(statsResult.data)
 
@@ -232,21 +242,29 @@ export default function VolunteerPage() {
         </p>
         <div className={styles.statusRow}>
           <div className={styles.statusItem}>
-            <span className={styles.statusLabel}>Current position</span>
-            <span className={styles.statusValue}>
-              {position
-                ? `${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`
-                : "Not sharing"}
-            </span>
-          </div>
-          <div className={styles.statusItem}>
             <span className={styles.statusLabel}>Average distance to incidents</span>
             <span className={styles.statusValue}>
               {stats ? `${stats.average_distance_km} km` : "N/A"}
             </span>
           </div>
+          <div className={styles.statusItem}>
+            <span className={styles.statusLabel}>Alerts received</span>
+            <span className={styles.statusValue}>{stats ? stats.alerts_received : "N/A"}</span>
+          </div>
         </div>
-        <button className={onDuty ? styles.dangerBtn : styles.primaryBtn} onClick={toggleDuty}>
+
+        <LiveMap
+          latitude={position?.latitude ?? profile.current_lat}
+          longitude={position?.longitude ?? profile.current_lng}
+          label="Your position"
+          height={230}
+        />
+
+        <button
+          className={onDuty ? styles.dangerBtn : styles.primaryBtn}
+          onClick={toggleDuty}
+          style={{ marginTop: "16px" }}
+        >
           {onDuty ? "Go off duty" : "Go on duty"}
         </button>
       </div>
@@ -295,17 +313,19 @@ export default function VolunteerPage() {
                     )}
                   </div>
 
+                  {/* Where the incident actually is, with a readable address. */}
+                  {incident?.latitude && incident?.longitude && (
+                    <LiveMap
+                      latitude={incident.latitude}
+                      longitude={incident.longitude}
+                      fromLat={position?.latitude}
+                      fromLng={position?.longitude}
+                      label="Incident location"
+                      height={200}
+                    />
+                  )}
+
                   <div className={styles.alertActions}>
-                    {incident?.latitude && incident?.longitude && (
-                      <a
-                        className={styles.secondaryBtn}
-                        href={`https://www.openstreetmap.org/?mlat=${incident.latitude}&mlon=${incident.longitude}#map=16/${incident.latitude}/${incident.longitude}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Open location
-                      </a>
-                    )}
                     {alert.status === "notified" && (
                       <button
                         className={styles.primaryBtn}

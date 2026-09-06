@@ -4,6 +4,7 @@ import {
   getVendorDashboard,
   getAmbulanceDashboard,
   getCustomerDashboard,
+  getPharmacyDashboard,
 } from "@/libs/api";
 
 export const getCustomerDashboardAction = async (queryParams = {}) => {
@@ -48,5 +49,20 @@ export const getAmbulanceDashboardAction = async (queryParams = {}) => {
   } catch (error) {
     console.error(error);
     return { error: error.message || "Failed to fetch ambulance dashboard metrics." };
+  }
+};
+
+export const getPharmacyDashboardAction = async (queryParams = {}) => {
+  try {
+    const response = await getPharmacyDashboard(queryParams);
+
+    if (response.error) {
+      return { error: response.error };
+    }
+
+    return { data: response };
+  } catch (error) {
+    console.error(error);
+    return { error: error.message || "Failed to fetch pharmacy analytics." };
   }
 };

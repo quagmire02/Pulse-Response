@@ -179,3 +179,11 @@
   font-size: 0.95rem;
 }
 
+
+/* Confirmation shown after the pharmacy has been told about a sold out item. */
+.restockNotice {
+  font-size: 0.92rem;
+  color: #12a594;
+  font-weight: 600;
+  margin: 12px 0 0;
+}

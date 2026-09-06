@@ -8,13 +8,15 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentTransaction;
 use App\Models\Notification;
+use App\Services\StripeService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
-    public function __construct()
+    public function __construct(private StripeService $stripe)
     {
         $this->middleware('auth:sanctum');
     }
@@ -142,6 +144,156 @@ class PaymentController extends Controller
             return response()->json([
                 "errors" => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Charge an order to a card through Stripe.
+     *
+     * The card never touches this application: the client sends a Stripe
+     * payment method reference, which in test mode is one of Stripe's own
+     * fixtures such as pm_card_visa. Stripe holds the card against a customer
+     * and this endpoint charges it, so the money movement, the decline
+     * messages and the ledger entries are all real API behaviour.
+     *
+     * Every attempt is written to payment_transactions whether it succeeded or
+     * not; the order is only marked paid when Stripe says the intent succeeded.
+     */
+    public function payWithCard(Request $request, string $order)
+    {
+        try {
+            $validated = $request->validate([
+                'payment_method' => ['required', 'string', 'max:255'],
+            ]);
+
+            $user = Auth::user();
+            $found = Order::find($order);
+
+            if (!$found) {
+                return response()->json(['errors' => 'Order not found.'], 404);
+            }
+
+            if ((int) $found->user_id !== (int) $user->id) {
+                return response()->json(['errors' => 'You are not authorized to pay for this order.'], 403);
+            }
+
+            if ($found->payment_status === 'paid') {
+                return response()->json(['errors' => 'This order is already paid.'], 409);
+            }
+
+            if ($found->order_status === 'canceled') {
+                return response()->json(['errors' => 'This order was cancelled.'], 409);
+            }
+
+            if (!$this->stripe->isConfigured()) {
+                return response()->json([
+                    'errors' => 'Card payments are not configured. Set STRIPE_SECRET in the backend .env.',
+                ], 503);
+            }
+
+            $customerId = $user->stripe_customer_id;
+
+            if (!$customerId) {
+                $customer = $this->stripe->createCustomer(
+                    $user->email,
+                    trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: $user->username
+                );
+
+                if (!$customer['ok']) {
+                    return response()->json(['errors' => $customer['error']], 422);
+                }
+
+                $customerId = $customer['data']['id'];
+            }
+
+            // Attaching is idempotent enough for our purposes: a method already
+            // attached to this same customer comes back without complaint.
+            $attach = $this->stripe->attachPaymentMethod($validated['payment_method'], $customerId);
+
+            if (!$attach['ok']) {
+                return response()->json(['errors' => $attach['error']], 422);
+            }
+
+            // Saved so the next order and the membership billing can reuse it
+            // instead of asking for a card the customer already gave us.
+            $user->update([
+                'stripe_customer_id' => $customerId,
+                'stripe_payment_method_id' => $validated['payment_method'],
+            ]);
+
+            $amount = (float) $found->total_amount;
+
+            $result = $this->stripe->chargeNow(
+                $customerId,
+                $validated['payment_method'],
+                $amount,
+                "Order #{$found->id}",
+                ['order_id' => $found->id, 'user_id' => $user->id]
+            );
+
+            $intent = $result['data'] ?? [];
+            $succeeded = $result['ok'] && (($intent['status'] ?? null) === 'succeeded');
+
+            $transaction = PaymentTransaction::create([
+                'user_id' => $user->id,
+                'order_id' => $found->id,
+                'type' => PaymentTransaction::TYPE_ORDER_PAYMENT,
+                'provider' => 'stripe',
+                'provider_reference' => $intent['id'] ?? null,
+                'amount' => $amount,
+                'currency' => $this->stripe->currency(),
+                'status' => $succeeded
+                    ? PaymentTransaction::STATUS_SUCCEEDED
+                    : PaymentTransaction::STATUS_FAILED,
+                'description' => "Order #{$found->id} card payment",
+                // An intent that comes back needing more steps is not an HTTP
+                // error, so the status is recorded too or it would read as a win.
+                'failure_reason' => $succeeded
+                    ? null
+                    : ($result['error'] ?? 'Charge status: ' . ($intent['status'] ?? 'unknown')),
+            ]);
+
+            if (!$succeeded) {
+                return response()->json([
+                    'errors' => $transaction->failure_reason,
+                    'transaction' => $transaction,
+                ], 402);
+            }
+
+            $payment = null;
+
+            DB::transaction(function () use ($found, $user, &$payment) {
+                $payment = Payment::create([
+                    'user_id' => $user->id,
+                    'order_id' => $found->id,
+                    'payment_type' => Order::PAYMENT_CARD,
+                    'payment_date' => now(),
+                ]);
+
+                $found->update([
+                    'payment_status' => 'paid',
+                    'payment_method' => Order::PAYMENT_CARD,
+                ]);
+            });
+
+            Notification::create([
+                'user_id' => $user->id,
+                'subject' => 'Payment successful',
+                'message' => "Your card payment for order #{$found->id} went through. Reference "
+                    . ($intent['id'] ?? 'n/a') . '.',
+            ]);
+
+            return response()->json([
+                'success' => 'Card payment successful.',
+                'payment' => $payment,
+                'transaction' => $transaction,
+                'reference' => $intent['id'] ?? null,
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
         }
     }
 

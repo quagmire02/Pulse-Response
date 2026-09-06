@@ -166,6 +166,12 @@ export const getPayment = async (id) => {
   return apiClient.get(`/payments/${id}/`);
 };
 
+// Charges an order to a card through Stripe. `paymentMethod` is a Stripe
+// payment method reference, never card details.
+export const payOrderWithCard = async (orderId, paymentMethod) => {
+  return apiClient.post(`/orders/${orderId}/pay-card/`, { payment_method: paymentMethod });
+};
+
 export const createPayment = async (data) => {
   return apiClient.post("/payments/", data);
 };
@@ -316,6 +322,23 @@ export const triggerEmergencyAlert = async (data) => {
   return apiClient.post("/emergency-alerts/", data);
 };
 
+// Live position of the ambulance assigned to the caller's own emergency.
+// Called with no id, the backend returns whichever alert is still open.
+export const getEmergencyTracking = async (alertId = null) => {
+  return apiClient.get(
+    alertId ? `/emergency-alerts/${alertId}/tracking/` : "/emergency-alerts/tracking/"
+  );
+};
+
+// Out of stock fallback: ask the pharmacy or the vendor to restock.
+export const requestMedicineRestock = async (id) => {
+  return apiClient.post(`/medicines/${id}/restock-request/`, {});
+};
+
+export const requestEquipmentRestock = async (id) => {
+  return apiClient.post(`/equipment/${id}/restock-request/`, {});
+};
+
 export const getLedgerTimeline = async (queryParams = {}) => {
   const params = new URLSearchParams(queryParams);
   return apiClient.get(`/ledger/timeline/?${params.toString()}`);
@@ -323,6 +346,10 @@ export const getLedgerTimeline = async (queryParams = {}) => {
 
 export const getLedgerSummary = async () => {
   return apiClient.get("/ledger/summary/");
+};
+
+export const getLedgerEntry = async (type, id) => {
+  return apiClient.get(`/ledger/entry/${type}/${id}/`);
 };
 
 export const getPatientTimeline = async (patientId, queryParams = {}) => {
@@ -354,6 +381,11 @@ export const updateEquipmentHandover = async (id, data) => {
 export const getCustomerDashboard = async (queryParams = {}) => {
   const params = new URLSearchParams(queryParams);
   return apiClient.get(`/partner/customer-dashboard/?${params.toString()}`);
+};
+
+export const getPharmacyDashboard = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/partner/pharmacy-dashboard/?${params.toString()}`);
 };
 
 export const getVendorDashboard = async (queryParams = {}) => {
@@ -468,4 +500,9 @@ export const applyVolunteerReward = async (data) => {
 
 export const sendChatbotMessage = async (data) => {
   return apiClient.post("/chatbot/message/", data);
+};
+
+export const reverseGeocode = async (queryParams = {}) => {
+  const params = new URLSearchParams(queryParams);
+  return apiClient.get(`/geocode/reverse/?${params.toString()}`);
 };

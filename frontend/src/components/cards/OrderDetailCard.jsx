@@ -1,6 +1,7 @@
 "use client"
 
 import { storageUrl } from "@/libs/images"
+import { toastSuccess } from "@/libs/toast"
 import styles from "./OrderDetailCard.module.css"
 import Link from "next/link"
 import { useState, useEffect } from "react"
@@ -118,7 +119,16 @@ export default function OrderDetailCard({ order, isAdmin = false }) {
       if (result.error) {
         setError(result.error.error);
       } else {
-        setSuccess("Order updated successfully!");
+        const status = formData.get("order_status");
+        const note =
+          status === "delivered"
+            ? "Order marked delivered. The payment has been recorded."
+            : status === "canceled"
+            ? "Order cancelled and stock returned."
+            : "Order updated successfully.";
+
+        setSuccess(note);
+        toastSuccess(note);
         setIsUpdating(false); // Hide the form on success
         setTimeout(() => {
           router.push("/orders");
@@ -130,6 +140,12 @@ export default function OrderDetailCard({ order, isAdmin = false }) {
   };
 
   const isOrderOwner = userId && order.user_id == userId;
+
+  // Cash is collected by the rider, so the order carries no payment record
+  // until it is delivered. Nothing here should imply the customer owes an
+  // in-app action.
+  const isCashOrder = (order.payment_method ?? "cash") !== "card";
+  const awaitingCash = isCashOrder && order.payment_status === "pending";
 
   const dateFormat = (dateString) => {
     if (!dateString) return "Not set"
@@ -174,6 +190,12 @@ export default function OrderDetailCard({ order, isAdmin = false }) {
           <span className={styles.statusLabel}>Payment Status:</span>
           <span className={`${styles.statusBadge} ${getPaymentStatusColor(order.payment_status)}`}>
             {order.payment_status}
+          </span>
+        </div>
+        <div className={styles.statusItem}>
+          <span className={styles.statusLabel}>Payment Method:</span>
+          <span className={styles.statusBadge}>
+            {isCashOrder ? "Cash on delivery" : "Card"}
           </span>
         </div>
         <div className={styles.statusItem}>
@@ -312,6 +334,13 @@ export default function OrderDetailCard({ order, isAdmin = false }) {
                 <option value="delivered">Delivered</option>
                 <option value="canceled">Canceled</option>
               </select>
+
+              {awaitingCash && (
+                <p className={styles.cashHint}>
+                  Marking this delivered records the cash the rider collected and
+                  notifies the customer. There is no separate payment step.
+                </p>
+              )}
             </div>
           )}
           {isOrderOwner && (

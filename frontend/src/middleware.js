@@ -6,6 +6,7 @@ import {
   DEFAULT_LOGIN_REDIRECT,
   apiRoute,
   authRoute,
+  publicRoutes,
 } from "./route";
 
 export async function middleware(req) {
@@ -36,15 +37,19 @@ export async function middleware(req) {
     return NextResponse.next(); // Allow access to login/register if not logged in
   }
 
-  // Redirect unauthenticated users from protected routes to the login page
-  if (!isLoggedIn) {
-    console.warn(`User is not logged in, redirecting to /auth/login`);
-    // Prevent redirect loop if already at the login page
-    if (pathname === "/auth/login") {
-      console.warn("Skipping middleware for /auth/login");
-      return NextResponse.next();
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+
+  // Signed in visitors have no reason to sit on the marketing page.
+  if (isPublicRoute) {
+    if (isLoggedIn) {
+      return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, req.url));
     }
-    return NextResponse.redirect(new URL("/auth/login", req.url)); // Redirect to login page
+    return NextResponse.next();
+  }
+
+  // Send visitors to the public landing page, not straight at a login form.
+  if (!isLoggedIn) {
+    return NextResponse.redirect(new URL("/welcome", req.url));
   }
 
   const res = NextResponse.next();

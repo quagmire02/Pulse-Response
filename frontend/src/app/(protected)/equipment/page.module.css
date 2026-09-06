@@ -20,6 +20,13 @@
   margin-top: 5rem;
 }
 
+.subtitle {
+  color: #666;
+  font-size: 0.95rem;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
 .filterBar {
   display: flex;
   flex-wrap: wrap;

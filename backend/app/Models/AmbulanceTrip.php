@@ -9,6 +9,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AmbulanceTrip extends Model
 {
     use HasFactory;
+    /**
+     * Callout fare, charged the moment a vehicle is assigned.
+     *
+     * The revenue column existed from the first migration but nothing ever
+     * wrote to it, so every ambulance dashboard reported zero earnings no
+     * matter how many runs the fleet did. A flat callout plus a distance rate
+     * is the simplest model that produces a defensible number.
+     */
+    public const BASE_FARE = 20.00;
+    public const PER_KM_RATE = 2.50;
+
+    public static function calculateFare(?float $distanceKm): float
+    {
+        return round(self::BASE_FARE + (max(0.0, (float) $distanceKm) * self::PER_KM_RATE), 2);
+    }
+
 
     protected $fillable = [
         'ambulance_company_id',

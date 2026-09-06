@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Equipment\RegisterEquipmentRequest;
 use App\Http\Requests\Equipment\UpdateEquipmentRequest;
 use App\Models\Equipment;
+use App\Services\RestockNotifier;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -34,6 +35,19 @@ class EquipmentController extends Controller
 
             if ($request->boolean('available_only')) {
                 $query->availableOnly();
+            }
+
+            // rent | sale | both — lets a shopper see only what they can act on.
+            if ($request->filled('offer')) {
+                if ($request->input('offer') === 'rent') {
+                    $query->where('is_for_rent', true);
+                } elseif ($request->input('offer') === 'sale') {
+                    $query->where('is_for_sale', true)->whereNotNull('sale_price');
+                } elseif ($request->input('offer') === 'both') {
+                    $query->where('is_for_rent', true)
+                          ->where('is_for_sale', true)
+                          ->whereNotNull('sale_price');
+                }
             }
 
             if ($request->filled('min_price')) {
@@ -235,6 +249,40 @@ class EquipmentController extends Controller
             return response()->json($equipment, 200);
         } catch (\Exception $e) {
             Log::error($e->getMessage());
+            return response()->json(['errors' => 'An unexpected error occurred.'], 500);
+        }
+    }
+
+    /**
+     * Generic fallback for an unavailable listing: tell the vendor who owns it
+     * that a shopper is asking for it.
+     *
+     * Mirrors the medicine restock request so both catalogues end the same way
+     * when there is nothing left to recommend.
+     */
+    public function requestRestock(string $id, RestockNotifier $notifier): JsonResponse
+    {
+        try {
+            $equipment = Equipment::with('vendor')->find($id);
+
+            if (!$equipment) {
+                return response()->json(['errors' => 'Equipment not found.'], 404);
+            }
+
+            if ($equipment->is_available && $equipment->quantity > 0) {
+                return response()->json(['errors' => 'This equipment is available again.'], 409);
+            }
+
+            $result = $notifier->equipmentUnavailable($equipment, Auth::user());
+
+            return response()->json([
+                'success' => $result['throttled']
+                    ? 'The vendor has already been told about this one.'
+                    : 'The vendor has been notified. You will get a notification when it is back.',
+                'notified' => $result['notified'],
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error($e);
             return response()->json(['errors' => 'An unexpected error occurred.'], 500);
         }
     }

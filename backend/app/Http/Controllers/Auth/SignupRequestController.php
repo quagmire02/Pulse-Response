@@ -9,6 +9,7 @@ use App\Models\AmbulanceVehicle;
 use App\Models\Cart;
 use App\Models\Notification;
 use App\Models\Pharmacist;
+use App\Models\PharmacistProfile;
 use App\Models\SignupRequest;
 use App\Models\User;
 use App\Models\Vendor;
@@ -93,12 +94,38 @@ class SignupRequestController extends Controller
 
         try {
             $validated['password'] = Hash::make($validated['password']);
+
+            // Ordinary customers are not vetted: there is nothing for an admin
+            // to verify, so their account is created immediately. Only roles
+            // that carry a licence or serve other users go to the queue.
+            if (($validated['role'] ?? 'user') === 'user') {
+                DB::transaction(function () use ($validated) {
+                    $user = User::create([
+                        'first_name' => $validated['first_name'] ?? null,
+                        'last_name' => $validated['last_name'] ?? null,
+                        'email' => $validated['email'],
+                        'username' => $validated['username'],
+                        'address' => $validated['address'] ?? null,
+                        'password' => $validated['password'],
+                        'role' => 'user',
+                    ]);
+
+                    Cart::create(['user_id' => $user->id]);
+                });
+
+                return response()->json([
+                    'success' => 'Account created. You can log in now.',
+                    'requires_approval' => false,
+                ], 201);
+            }
+
             $validated['status'] = SignupRequest::STATUS_PENDING;
 
             SignupRequest::create($validated);
 
             return response()->json([
                 'success' => 'Signup request submitted. You will be able to log in once an admin approves it.',
+                'requires_approval' => true,
             ], 201);
         } catch (\Exception $e) {
             Log::error($e);
@@ -282,13 +309,25 @@ class SignupRequestController extends Controller
                     'user_id' => $user->id,
                 ]);
 
-                if ($found->needsPharmacistProfile()) {
+                // Doctors get the consultation profile; pharmacists get the
+                // catalogue profile. They are different professions now.
+                if ($found->role === 'doctor') {
                     Pharmacist::create([
                         'user_id' => $user->id,
                         'license_num' => (int) $found->license_num,
                         'speciality' => $found->speciality,
                         'bio' => $found->bio,
                         'is_consultation' => $found->is_consultation,
+                    ]);
+                }
+
+                if ($found->role === 'pharmacist') {
+                    PharmacistProfile::create([
+                        'user_id' => $user->id,
+                        'license_num' => (string) $found->license_num,
+                        'pharmacy_name' => $found->company_name,
+                        'contact_phone' => $found->contact_phone,
+                        'bio' => $found->bio,
                     ]);
                 }
 

@@ -4,8 +4,10 @@ import {
   triggerEmergencyAlert,
   getLedgerTimeline,
   getLedgerSummary,
+  getLedgerEntry,
   getPatientTimeline,
   getPatientSummary,
+  getEmergencyTracking,
 } from "@/libs/api";
 
 export const getLedgerTimelineAction = async (queryParams = {}) => {
@@ -31,6 +33,20 @@ export const getLedgerSummaryAction = async () => {
     return { data: response };
   } catch (error) {
     return { error: error.message || "Failed to fetch summary." };
+  }
+};
+
+/**
+ * Full detail for a single timeline entry, so clicking order #12 shows order
+ * #12 rather than the whole order list.
+ */
+export const getLedgerEntryAction = async (type, id) => {
+  try {
+    const response = await getLedgerEntry(type, id);
+    if (response.error) return { error: response.error };
+    return { data: response.data, type: response.type };
+  } catch (error) {
+    return { error: error.message || "Failed to load this record." };
   }
 };
 
@@ -83,5 +99,19 @@ export const triggerEmergencyAlertAction = async (data) => {
     };
   } catch (error) {
     return { error: error.message || "Failed to trigger emergency alert." };
+  }
+};
+
+/**
+ * Where the assigned ambulance is right now. Polled by the patient's tracking
+ * panel, so it returns null rather than an error when nothing is in progress.
+ */
+export const getEmergencyTrackingAction = async (alertId = null) => {
+  try {
+    const response = await getEmergencyTracking(alertId);
+    if (response.error) return { error: response.error };
+    return { data: response.data };
+  } catch (error) {
+    return { error: error.message || "Failed to load ambulance tracking." };
   }
 };

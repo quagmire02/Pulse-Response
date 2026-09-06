@@ -6,6 +6,7 @@ import {
   getVendorEquipment,
   createEquipment,
   updateEquipment,
+  requestEquipmentRestock,
   deleteEquipment,
 } from "@/libs/api";
 
@@ -114,5 +115,23 @@ export const deleteEquipmentAction = async (id) => {
     return { success: "Equipment deleted." };
   } catch (error) {
     return { error: error.message || "Failed to delete equipment." };
+  }
+};
+
+/**
+ * Same fallback as the medicine catalogue, aimed at the vendor who owns the
+ * listing rather than the pharmacy team.
+ */
+export const requestEquipmentRestockAction = async (id) => {
+  try {
+    const response = await requestEquipmentRestock(id);
+
+    if (response.error) {
+      return { error: typeof response.error === "string" ? response.error : "Could not send the request." };
+    }
+
+    return { success: response.success };
+  } catch (error) {
+    return { error: error.message || "Could not send the request." };
   }
 };

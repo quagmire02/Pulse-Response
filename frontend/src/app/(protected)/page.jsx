@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react"
 import { getMedicinesAction } from "@/actions/medicineActions"
 import { getCategoriesAction } from "@/actions/categoryActions"
+import Link from "next/link"
 import Image from "next/image"
+import AmbulanceTracker from "@/components/map/AmbulanceTracker"
 import { medicineImage } from "@/libs/images"
 import styles from "./page.module.css"
 
@@ -52,6 +54,10 @@ export default function HomePage() {
 
   return (
     <div className={styles.container}>
+      {/* An emergency in progress outranks everything else on this page. The
+          component renders nothing when there is none. */}
+      <AmbulanceTracker />
+
       {/* Hero Section */}
       <section className={styles.heroSection}>
         <div className={styles.heroBackground}>
@@ -68,9 +74,11 @@ export default function HomePage() {
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>PulseResponse</h1>
           <p className={styles.heroSubtitle}>Your Partner in Health and Wellness</p>
-          <button className={styles.heroButton}>
-            <a className={styles.medicineLink} href="/medicines">Explore Our Products</a>
-          </button>
+          {/* A link, not a button wrapping an anchor: nesting an <a> inside a
+              <button> is invalid and swallows the navigation. */}
+          <Link className={`${styles.heroButton} ${styles.medicineLink}`} href="/medicines">
+            Explore Our Products
+          </Link>
         </div>
       </section>
 
@@ -223,12 +231,14 @@ export default function HomePage() {
           Shop with us for all your medical and wellness needs, and experience reliable service.
         </p>
         <div className={styles.ctaButtons}>
-          <button className={styles.ctaPrimary}>
-            <a className={styles.medicineLink1} href="/products">Shop Now</a>
-          </button>
-          <button className={styles.ctaSecondary}>
-            <a className={styles.medicineLink2} href="/products">View All Products</a>
-          </button>
+          {/* /products was never a route. Medicines and equipment are the two
+              catalogues, so each button now goes to the one it names. */}
+          <Link className={`${styles.ctaPrimary} ${styles.medicineLink1}`} href="/medicines">
+            Shop Medicines
+          </Link>
+          <Link className={`${styles.ctaSecondary} ${styles.medicineLink2}`} href="/equipment">
+            Browse Equipment
+          </Link>
         </div>
       </div>
     </section>

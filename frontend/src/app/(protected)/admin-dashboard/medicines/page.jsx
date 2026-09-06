@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { getCategoriesAction } from "@/actions/categoryActions"
 import { getMedicinesAction } from "@/actions/medicineActions"
 import { deleteMedicineAction } from "@/actions/medicineActions"
+import { getUserRoleAction } from "@/actions/authActions"
 import MedicineSidebar from "@/components/sidebars/MedicineSidebar"
 import Pagination from "@/components/paginations/Pagination"
 import AdminMedicineCard from "@/components/cards/AdminMedicineCard"
@@ -28,6 +29,8 @@ export default function AdminMedicinesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [medicineToDelete, setMedicineToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  // Pharmacists manage their own shelf; admins keep the whole catalogue.
+  const [ownedOnly, setOwnedOnly] = useState(false)
 
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -43,11 +46,24 @@ export default function AdminMedicinesPage() {
 
   useEffect(() => {
     loadCategories()
+    resolveScope()
   }, [])
 
+  // Reload once the role is known, so a pharmacist never briefly sees the
+  // whole catalogue before it narrows to theirs.
   useEffect(() => {
     loadMedicines()
-  }, [filters])
+  }, [filters, ownedOnly])
+
+  /**
+   * Only a pharmacist gets the narrowed view. Admins manage every listing, so
+   * filtering theirs would hide most of the catalogue from the people who
+   * actually maintain it.
+   */
+  const resolveScope = async () => {
+    const role = await getUserRoleAction()
+    setOwnedOnly(role === "pharmacist")
+  }
 
   const loadCategories = async () => {
     try {
@@ -74,6 +90,11 @@ export default function AdminMedicinesPage() {
           queryParams.append(key, value)
         }
       })
+
+      // The backend keeps the ownership rule; this only asks for it.
+      if (ownedOnly) {
+        queryParams.append("mine", "1")
+      }
 
       const result = await getMedicinesAction(Object.fromEntries(queryParams))
 
@@ -224,9 +245,17 @@ export default function AdminMedicinesPage() {
 
       <main className={styles.main}>
         <div className={styles.headerTop}>
-            <h1 className={styles.title}>Admin - Medicine Management</h1>
+            <h1 className={styles.title}>
+              {ownedOnly ? "My Medicines" : "Admin - Medicine Management"}
+            </h1>
             <CreateMedicineButton onClick={() => setShowCreateModal(true)} />
         </div>
+        {ownedOnly && (
+          <p className={styles.scopeNote}>
+            Showing the medicines you listed. Listings from other pharmacies are
+            managed by them.
+          </p>
+        )}
         <div className={styles.mainHeader}>
           <button className={styles.sidebarToggle} onClick={toggleSidebar} aria-label="Toggle sidebar">
             ☰

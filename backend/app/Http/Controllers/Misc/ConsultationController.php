@@ -428,7 +428,7 @@ class ConsultationController extends Controller
 
         try {
             if (!$pharmacist) {
-                return response()->json(['error' => 'Pharmacist profile not found.'], 404);
+                return response()->json(['error' => 'Doctor profile not found.'], 404);
             }
 
             $exists = Slot::where('pharmacist_id', $pharmacist->id)

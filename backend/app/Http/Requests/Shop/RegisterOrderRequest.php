@@ -30,6 +30,9 @@ class RegisterOrderRequest extends BaseRequest
             // for any equipment on the same order.
             'delivery_address' => ['required', 'string', 'max:255'],
             'contact_phone' => ['required', 'string', 'max:50'],
+            // Needed at order time because the premium discount only applies
+            // to card payments, and the total is calculated here.
+            'payment_method' => ['nullable', 'string', Rule::in(['cash', 'card'])],
             'delivery_notes' => ['nullable', 'string', 'max:1000'],
             'preferred_handover_date' => ['nullable', 'date', 'after_or_equal:today'],
 

@@ -6,6 +6,7 @@ import {
   getMedicineAlternatives,
   createMedicine,
   updateMedicine,
+  requestMedicineRestock,
   deleteMedicine,
 } from "@/libs/api";
 
@@ -137,6 +138,9 @@ export const getMedicineAlternativesAction = async ({ medicineId, name, limit = 
       data: response.data || [],
       genericNames: response.generic_names || [],
       matchedBy: response.matched_by || "none",
+      // What the shopper actually searched for. Needed because the in-stock
+      // filter hides the sold out item from the grid entirely.
+      requested: response.requested || [],
     };
   } catch (error) {
     console.error(error);
@@ -206,5 +210,24 @@ export const deleteMedicineAction = async (id) => {
   } catch (error) {
     console.error(error);
     return { error: error.message || "An unexpected Error occured" };
+  }
+};
+
+/**
+ * Last step of the out of stock fallback: no alternative could be recommended,
+ * so hand the demand to the pharmacy team instead of ending on a dead end.
+ */
+export const requestMedicineRestockAction = async (id) => {
+  try {
+    const response = await requestMedicineRestock(id);
+
+    if (response.error) {
+      return { error: typeof response.error === "string" ? response.error : "Could not send the request." };
+    }
+
+    return { success: response.success };
+  } catch (error) {
+    console.error(error);
+    return { error: error.message || "Could not send the request." };
   }
 };

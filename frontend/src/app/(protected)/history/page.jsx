@@ -6,6 +6,7 @@ import { getLedgerTimelineAction, getLedgerSummaryAction, triggerEmergencyAlertA
 import { getConsultationsAction } from "@/actions/consultationActions"
 import { getUserRoleAction } from "@/actions/authActions"
 import TimelineCard from "@/components/cards/TimelineCard"
+import AmbulanceTracker from "@/components/map/AmbulanceTracker"
 import Pagination from "@/components/paginations/Pagination"
 import styles from "./page.module.css"
 
@@ -17,6 +18,7 @@ export default function HistoryPage() {
   const [timeline, setTimeline] = useState([])
   const [summary, setSummary] = useState({
     total_purchases: 0,
+    total_equipment_purchases: 0,
     total_rentals: 0,
     total_consultations: 0,
     total_alerts: 0,
@@ -207,13 +209,24 @@ export default function HistoryPage() {
         </button>
       </div>
 
+      {/* Live ambulance position while an emergency is in progress. Renders
+          nothing when there is nothing to track. */}
+      <AmbulanceTracker />
+
       {/* Summary Cards */}
       <div className={styles.statsGrid}>
         <div className={`${styles.statCard} ${styles.purc}`}>
           <div className={styles.statIcon}>💊</div>
           <div className={styles.statDetails}>
-            <span className={styles.statLabel}>Purchases</span>
+            <span className={styles.statLabel}>Medicine Purchases</span>
             <strong className={styles.statValue}>{summary.total_purchases}</strong>
+          </div>
+        </div>
+        <div className={`${styles.statCard} ${styles.equip}`}>
+          <div className={styles.statIcon}>🛒</div>
+          <div className={styles.statDetails}>
+            <span className={styles.statLabel}>Equipment Purchases</span>
+            <strong className={styles.statValue}>{summary.total_equipment_purchases}</strong>
           </div>
         </div>
         <div className={`${styles.statCard} ${styles.rent}`}>
@@ -244,6 +257,7 @@ export default function HistoryPage() {
         <div className={styles.tabs}>
           <button className={`${styles.tab} ${activeTab === "all" ? styles.activeTab : ""}`} onClick={() => handleTabChange("all")}>All Logs</button>
           <button className={`${styles.tab} ${activeTab === "purchase" ? styles.activeTab : ""}`} onClick={() => handleTabChange("purchase")}>Medicine Purchases</button>
+          <button className={`${styles.tab} ${activeTab === "equipment_purchase" ? styles.activeTab : ""}`} onClick={() => handleTabChange("equipment_purchase")}>Equipment Purchases</button>
           <button className={`${styles.tab} ${activeTab === "equipment" ? styles.activeTab : ""}`} onClick={() => handleTabChange("equipment")}>Equipment Rentals</button>
           <button className={`${styles.tab} ${activeTab === "consultation" ? styles.activeTab : ""}`} onClick={() => handleTabChange("consultation")}>Doctor Visits</button>
           <button className={`${styles.tab} ${activeTab === "emergency" ? styles.activeTab : ""}`} onClick={() => handleTabChange("emergency")}>Emergency Alerts</button>

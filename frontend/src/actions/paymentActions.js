@@ -3,6 +3,7 @@ import {
   getPayments,
   getPayment,
   createPayment,
+  payOrderWithCard,
   deletePayment
 } from "@/libs/api";
 
@@ -93,11 +94,39 @@ export const deletePaymentAction = async (id) => {
     if (response.error) {
       return { error: response.error };
     }
-    
-    await logoutAction()
+
+    // logoutAction() used to be called here. It was never imported, so this
+    // threw a ReferenceError, and signing the user out after deleting a payment
+    // record was not the intent anyway.
     return { success: "Payment deleted" };
   } catch (error) {
     console.error(error);
     return { error: error.message || "An unexpected Error occured." };
+  }
+};
+
+/**
+ * Run a real Stripe charge for an order.
+ *
+ * `paymentMethod` is a Stripe payment method reference. In test mode that is
+ * one of Stripe's fixtures such as pm_card_visa, so no card number is ever
+ * typed, stored or transmitted by this app.
+ */
+export const payOrderWithCardAction = async (orderId, paymentMethod) => {
+  try {
+    const response = await payOrderWithCard(orderId, paymentMethod);
+
+    if (response.error) {
+      // Stripe's own decline reason, surfaced rather than replaced with a
+      // generic message, so a declined test card reads as a decline.
+      return {
+        error: typeof response.error === "string" ? response.error : "The payment did not go through.",
+      };
+    }
+
+    return { success: response.success, reference: response.reference };
+  } catch (error) {
+    console.error(error);
+    return { error: error.message || "The payment did not go through." };
   }
 };

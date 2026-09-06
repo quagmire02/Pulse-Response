@@ -2,106 +2,82 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createOrderAction } from "@/actions/orderActions"
-import { createPaymentAction } from "@/actions/paymentActions"
+import { payOrderWithCardAction } from "@/actions/paymentActions"
+import { toastSuccess, toastError } from "@/libs/toast"
 import { getCartItemsAction } from "@/actions/cartActions"
 import { getUserIdAction } from "@/actions/authActions"
+import { getMembershipAction } from "@/actions/membershipActions"
+import { calculateOrderTotals, DELIVERY_LABELS, DELIVERY_CHARGES } from "@/libs/pricing"
 import { useFormStatus } from "react-dom"
 import styles from "./page.module.css"
 
-function PaymentForm({ onCardSubmit, loading }) {
-  const [formData, setFormData] = useState({
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
-    cardholderName: "",
-  });
+/**
+ * Stripe's own test payment methods.
+ *
+ * Selecting one is exactly how a tokenised card reaches the API: the reference
+ * is sent, Stripe holds the card, and no card number is ever typed, stored or
+ * transmitted by this app. The declining fixtures are here on purpose so the
+ * failure path can be demonstrated as easily as the happy one.
+ */
+const TEST_PAYMENT_METHODS = [
+  { value: "pm_card_visa", label: "Visa ending 4242, succeeds" },
+  { value: "pm_card_mastercard", label: "Mastercard ending 4444, succeeds" },
+  { value: "pm_card_chargeDeclined", label: "Declined card, to test a failure" },
+  { value: "pm_card_chargeDeclinedInsufficientFunds", label: "Insufficient funds" },
+]
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
+function PaymentForm({ paymentMethod, setPaymentMethod, loading }) {
   return (
     <div className={styles.cardPaymentForm}>
       <div className={styles.field}>
-        <label className={styles.label}>Cardholder Name</label>
-        <input
-          type="text"
-          name="cardholderName"
-          value={formData.cardholderName}
-          onChange={handleInputChange}
+        <label className={styles.label} htmlFor="stripe_payment_method">
+          Card
+        </label>
+        <select
+          id="stripe_payment_method"
           className={styles.input}
-          placeholder="John Doe"
-          required
-        />
+          value={paymentMethod}
+          onChange={(event) => setPaymentMethod(event.target.value)}
+        >
+          {TEST_PAYMENT_METHODS.map((method) => (
+            <option key={method.value} value={method.value}>
+              {method.label}
+            </option>
+          ))}
+        </select>
       </div>
-      <div className={styles.field}>
-        <label className={styles.label}>Card Number</label>
-        <input
-          type="text"
-          name="cardNumber"
-          value={formData.cardNumber}
-          onChange={handleInputChange}
-          className={styles.input}
-          placeholder="1234 5678 9012 3456"
-          maxLength="19"
-          required
-        />
-      </div>
-      <div className={styles.row}>
-        <div className={styles.field}>
-          <label className={styles.label}>Expiry Date</label>
-          <input
-            type="text"
-            name="expiryDate"
-            value={formData.expiryDate}
-            onChange={handleInputChange}
-            className={styles.input}
-            placeholder="MM/YY"
-            maxLength="5"
-            required
-          />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label}>CVV</label>
-          <input
-            type="text"
-            name="cvv"
-            value={formData.cvv}
-            onChange={handleInputChange}
-            className={styles.input}
-            placeholder="123"
-            maxLength="4"
-            required
-          />
-        </div>
-      </div>
+
+      <p className={styles.cardNotice}>
+        Payments run against Stripe in test mode. The card is held by Stripe and
+        charged through their API, so declines and receipts are real responses,
+        but no money moves and no card details are stored here.
+      </p>
+
       <div className={styles.actions}>
-        <button type="submit" className={styles.submitButton} disabled={loading} onClick={() => onCardSubmit(formData, 'complete')}>
-          {loading ? "Processing..." : "Complete Order"}
+        <button type="submit" className={styles.submitButton} disabled={loading}>
+          {loading ? "Processing..." : "Pay and Complete Order"}
         </button>
       </div>
     </div>
   );
 }
 
-function FormContent({ cartItems, cartTotals, calculateTotal, success, error, subscribeType, setSubscribeType }) {
+function FormContent({
+  cartItems,
+  success,
+  error,
+  subscribeType,
+  setSubscribeType,
+  deliveryType,
+  setDeliveryType,
+  paymentMethod,
+  isPremium,
+}) {
   const { pending } = useFormStatus();
   const [prescriptionImages, setPrescriptionImages] = useState([{ id: Date.now(), file: null }]);
 
-  const [deliveryType, setDeliveryType] = useState("basic");
-
   const hasEquipment = cartItems.some((item) => item.item_type !== "medicine");
   const hasMedicines = cartItems.some((item) => item.item_type === "medicine");
-
-  const deliveryPrices = {
-    basic: 10.00,
-    rapid: 20.00,
-    emergency: 35.00,
-  };
 
   const handleAddImage = () => {
     setPrescriptionImages([...prescriptionImages, { id: Date.now(), file: null }]);
@@ -128,13 +104,12 @@ function FormContent({ cartItems, cartTotals, calculateTotal, success, error, su
     setDeliveryType(e.target.value);
   };
 
-  const subtotal = cartItems.reduce((total, item) => total + Number(item.line_total ?? 0), 0);
-  const medicineSubtotal = Number(cartTotals?.medicines ?? 0);
-
-  // The subscription discount applies to medicines only; equipment is one-off.
-  // No discount on the first order; the 10% loyalty reward starts at the first renewal.
-  const discountAmount = 0;
-  const deliveryCharge = deliveryPrices[deliveryType];
+  const totals = calculateOrderTotals({
+    cartItems,
+    deliveryType,
+    paymentMethod,
+    isPremium,
+  });
 
   const getNextDeliveryDateString = () => {
     const date = new Date();
@@ -176,26 +151,36 @@ function FormContent({ cartItems, cartTotals, calculateTotal, success, error, su
         <div className={styles.items}>
           <div className={styles.item}>
             <span className={styles.itemName}>Subtotal</span>
-            <span className={styles.itemPrice}>${subtotal.toFixed(2)}</span>
+            <span className={styles.itemPrice}>${totals.subtotal.toFixed(2)}</span>
           </div>
-          {discountAmount > 0 && (
+
+          {totals.premiumDiscount > 0 && (
             <div className={styles.item}>
               <span className={styles.itemName} style={{ color: "#2e7d32", fontWeight: "600" }}>
-                Subscription Discount ({subscribeType === "weekly" ? "5%" : "10%"})
+                Premium card discount (10%)
               </span>
               <span className={styles.itemPrice} style={{ color: "#2e7d32", fontWeight: "600" }}>
-                -${discountAmount.toFixed(2)}
+                -${totals.premiumDiscount.toFixed(2)}
               </span>
             </div>
           )}
+
           <div className={styles.item}>
-            <span className={styles.itemName}>Delivery Charge</span>
-            <span className={styles.itemPrice}>${Number.parseFloat(deliveryCharge).toFixed(2)}</span>
+            <span className={styles.itemName}>
+              Delivery charge, {DELIVERY_LABELS[deliveryType] || deliveryType}
+            </span>
+            <span className={styles.itemPrice}>${totals.delivery.toFixed(2)}</span>
           </div>
         </div>
         <div className={styles.total}>
-          <strong>Total: ${calculateTotal(deliveryType, subscribeType)}</strong>
+          <strong>Total: ${totals.total.toFixed(2)}</strong>
         </div>
+
+        {isPremium && paymentMethod !== "card" && (
+          <p className={styles.premiumHint}>
+            You have premium access. Choose card payment below to take 10% off this order.
+          </p>
+        )}
         {nextDeliveryDateStr && (
           <div className={styles.deliveryNotice} style={{
             marginTop: "15px",
@@ -285,9 +270,11 @@ function FormContent({ cartItems, cartTotals, calculateTotal, success, error, su
             value={deliveryType}
             onChange={handleDeliveryChange}
           >
-            <option value="basic">Basic (within 2-3 days)</option>
-            <option value="rapid">Rapid (within 1 day)</option>
-            <option value="emergency">Emergency (within 1-3 hours)</option>
+            {/* Prices come from the shared table so the label can never drift
+                from what is actually charged. */}
+            <option value="basic">Basic, 2 to 3 days, ${DELIVERY_CHARGES.basic.toFixed(2)}</option>
+            <option value="rapid">Rapid, next day, ${DELIVERY_CHARGES.rapid.toFixed(2)}</option>
+            <option value="emergency">Emergency, within hours, ${DELIVERY_CHARGES.emergency.toFixed(2)}</option>
           </select>
         </div>
         <div className={styles.formGroup}>
@@ -346,7 +333,11 @@ export default function CheckoutPage() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash"); // Set a default
-  const [cardFormData, setCardFormData] = useState(null); // State to hold card data
+  const [deliveryType, setDeliveryType] = useState("basic");
+  // Premium members get 10% off, but only when they pay by card.
+  const [isPremium, setIsPremium] = useState(false);
+  // A Stripe payment method reference, not card data.
+  const [stripePaymentMethod, setStripePaymentMethod] = useState("pm_card_visa");
   const [subscribeType, setSubscribeType] = useState("none");
   const router = useRouter();
 
@@ -371,6 +362,11 @@ export default function CheckoutPage() {
         setCartItems(result.data.cart_items || []);
         setCartTotals(result.data.totals || null);
       }
+
+      const membership = await getMembershipAction();
+      if (!membership.error) {
+        setIsPremium(Boolean(membership.data?.is_premium));
+      }
     } catch (err) {
       setError("Failed to load cart items");
     } finally {
@@ -378,24 +374,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const calculateTotal = (delivery_type = "basic", sub_type = "none") => {
-    const subtotal = cartItems.reduce((total, item) => total + Number(item.line_total ?? 0), 0);
-    const medicineSubtotal = Number(cartTotals?.medicines ?? 0);
-
-    // Mirrors the backend: the subscription discount only touches medicines.
-    // Mirrors Order::getSubscriptionDiscountRate(): nothing off the first order.
-    const discountAmount = 0;
-    let amount = subtotal - discountAmount;
-
-    if (delivery_type === "rapid") {
-      amount += 10;
-    } else if (delivery_type === "emergency") {
-      amount += 20;
-    }
-
-    return amount.toFixed(2);
-  };
-  
+  // Single source of truth, shared with the summary block and the backend.
   const handleOrder = async (formData) => {
     setLoading(true);
     setError("");
@@ -422,6 +401,9 @@ export default function CheckoutPage() {
       return;
     }
 
+    // The backend needs this to know whether the premium card discount applies.
+    formData.append("payment_method", selectedPaymentMethod);
+
     formData.delete("prescription_images[]");
 
     prescriptionImages.forEach((file) => {
@@ -447,21 +429,28 @@ export default function CheckoutPage() {
       }
 
       if (selectedPaymentMethod === "card") {
-        const paymentFormData = new FormData();
-        paymentFormData.append("order", orderResult?.order_id);
-        paymentFormData.append("payment", "card");
+        // A real Stripe charge against the order total. A declined test card
+        // comes back here with Stripe's own reason, and the order stays unpaid
+        // rather than being quietly marked settled.
+        const paymentResult = await payOrderWithCardAction(
+          orderResult?.order_id,
+          stripePaymentMethod
+        );
 
-        const paymentResult = await createPaymentAction(paymentFormData);
         if (paymentResult.error) {
-          setError(paymentResult.error.error);
+          setError(paymentResult.error);
+          toastError(paymentResult.error);
           setLoading(false);
           return;
         }
-        setSuccess("Order created and Payment processed successfully!");
-      } else {
-        setSuccess("Order created successfully!");
-      }
 
+        setSuccess("Payment successful. Your order is confirmed.");
+        toastSuccess("Payment successful. Your order is confirmed.");
+      } else {
+        setSuccess("Order placed. Pay the rider on delivery.");
+        toastSuccess("Order placed. Pay the rider on delivery.");
+
+      }
       setTimeout(() => {
         router.push("/orders");
       }, 1500);
@@ -506,12 +495,14 @@ export default function CheckoutPage() {
       <form action={handleOrder} id="checkout-form">
         <FormContent
           cartItems={cartItems}
-          cartTotals={cartTotals}
-          calculateTotal={calculateTotal}
           success={success}
           error={error}
           subscribeType={subscribeType}
           setSubscribeType={setSubscribeType}
+          deliveryType={deliveryType}
+          setDeliveryType={setDeliveryType}
+          paymentMethod={selectedPaymentMethod}
+          isPremium={isPremium}
         />
         <div className={styles.paymentMethods}>
           <h2 className={styles.sectionTitle}>Payment Method</h2>
@@ -542,13 +533,24 @@ export default function CheckoutPage() {
         </div>
 
         {selectedPaymentMethod === "cash" && (
-          <button className={styles.submitButton} type="submit" disabled={loading}>
-            {loading ? "Processing..." : "Place Cash Order"}
-          </button>
+          <>
+            <p className={styles.cashNotice}>
+              Pay the delivery rider in cash when your order arrives. It is marked
+              paid automatically once the delivery is completed, and you will get a
+              notification then. There is nothing to confirm afterwards.
+            </p>
+            <button className={styles.submitButton} type="submit" disabled={loading}>
+              {loading ? "Processing..." : "Place Cash Order"}
+            </button>
+          </>
         )}
 
         {selectedPaymentMethod === "card" && (
-          <PaymentForm onCardSubmit={setCardFormData} loading={loading} />
+          <PaymentForm
+            paymentMethod={stripePaymentMethod}
+            setPaymentMethod={setStripePaymentMethod}
+            loading={loading}
+          />
         )}
 
         <button type="submit" style={{ display: 'none' }} id="hidden-submit" />
