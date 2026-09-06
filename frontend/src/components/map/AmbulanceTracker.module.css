@@ -1,0 +1,170 @@
+.panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #c0392b;
+  border-radius: 18px;
+  padding: 22px 24px;
+  margin-bottom: 26px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #c0392b;
+  margin-bottom: 4px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: capitalize;
+}
+
+.location {
+  margin: 4px 0 0;
+  font-size: 0.92rem;
+  color: #64748b;
+}
+
+.statusChip {
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dispatched {
+  background: #e0f2fe;
+  color: #0b79d4;
+}
+
+.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.factRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.fact,
+.contact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.factLabel {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #5b6b7f;
+}
+
+.factValue {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.live {
+  color: #12a594;
+}
+
+.stale {
+  color: #e08700;
+}
+
+.contactRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-end;
+  margin-top: 16px;
+}
+
+.phone {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0b79d4;
+  text-decoration: none;
+}
+
+.phone:hover {
+  text-decoration: underline;
+}
+
+.routeLink {
+  margin-left: auto;
+  padding: 9px 16px;
+  border-radius: 10px;
+  background: #0b79d4;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.routeLink:hover {
+  background: #0a6ab9;
+}
+
+.warning {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: #7c2d12;
+}
+
+.error {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  color: #c0392b;
+}
+
+.volunteers {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.volunteerList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.92rem;
+  color: #1e293b;
+  line-height: 1.7;
+}
+
+@media (max-width: 620px) {
+  .panel {
+    padding: 18px 16px;
+  }
+
+  .routeLink {
+    margin-left: 0;
+  }
+}

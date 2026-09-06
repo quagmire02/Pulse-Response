@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Http\Requests\Medicine;
+
+use App\Http\Requests\BaseRequest;
+use Illuminate\Validation\Rule;
+
+class RegisterMedicineRequest extends BaseRequest
+{
+        public function authorize(): bool
+    {
+        return true;
+    }
+
+        public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string'],
+            'generic_name' => ['required', 'string'],
+            'description' => ['nullable', 'string'],
+            'price' => ['required', 'numeric', 'min:1'],
+            'dosage' => ['required', 'string'],
+            'brand' => ['required', 'string'],
+            'stock' => ['required', 'integer', 'min:1'],
+            'image_url' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,png,jpg',
+                'max:2048',
+                Rule::dimensions()->maxWidth(1000)->maxHeight(1000),
+            ],
+            'category_ids' => ['required', 'array'],
+            'category_ids.*' => ['exists:categories,id'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'price.min' => 'The price must be at least 1.',
+            'stock.min' => 'The stock must be at least 1.',
+            'image_url.image' => 'The file must be an image.',
+            'image_url.max' => 'The image may not be greater than 2MB.',
+            'image_url.mimes' => 'The image must be a file of type: jpeg, png, jpg.',
+            'image_url.dimensions' => 'The image dimensions are too large (max 1000x1000 pixels).',
+        ];
+    }
+}

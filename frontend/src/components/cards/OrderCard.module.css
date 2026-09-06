@@ -1,0 +1,167 @@
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1rem 0.5rem 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.orderId {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.amount {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0b79d4;
+}
+
+.content {
+  padding: 1rem;
+}
+
+.detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.value {
+  font-size: 0.9rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.statusRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+}
+
+.statusItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.status,
+.paymentStatus {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.preparing {
+  background-color: #cce5ff;
+  color: #004085;
+}
+
+.ready {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.delivered {
+  background-color: #e2e3e5;
+  color: #383d41;
+}
+
+.canceled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.payment {
+  background-color: #1a8132;
+  color: #ffffff;
+}
+
+.paid {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.paymentPending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.failed {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.default {
+  background-color: #8297ad;
+  color: #ffffff;
+}
+
+@media (max-width: 480px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .amount {
+    font-size: 1.1rem;
+  }
+
+  .statusRow {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .statusItem {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.cashNote {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #0f766e;
+  line-height: 1.5;
+}

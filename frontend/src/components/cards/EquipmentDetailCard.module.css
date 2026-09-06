@@ -1,0 +1,276 @@
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f6;
+  overflow: hidden;
+  width: 100%;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.imageSection {
+  position: relative;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  max-height: 500px;
+}
+
+.availabilityBadge {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.available {
+  background: #22c55e;
+  color: white;
+}
+
+.unavailable {
+  background: #ef4444;
+  color: white;
+}
+
+.infoSection {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.category {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #0b79d4;
+  letter-spacing: 0.05em;
+}
+
+.name {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 6px 0 12px 0;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.price {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.priceUnit {
+  font-size: 1rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 16px 0;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metaValue {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.conditionBadge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.conditionBadge.new {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.conditionBadge.good {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.conditionBadge.fair {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.descriptionBlock h3, .safetyBlock h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.descriptionBlock p, .safetyBlock p {
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.safetyBlock {
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  padding: 16px;
+  border-radius: 0 8px 8px 0;
+}
+
+.vendorBlock {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 20px;
+}
+
+.vendorLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.vendorLink {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0b79d4;
+  text-decoration: none;
+}
+
+.vendorLink:hover {
+  text-decoration: underline;
+}
+
+.vendorPhone {
+  font-size: 0.9rem;
+  color: #475569;
+  margin-top: 4px;
+}
+
+.adminActions {
+  display: flex;
+  gap: 16px;
+  margin-top: auto;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 24px;
+}
+
+.editBtn {
+  flex: 1;
+  padding: 12px;
+  background: #e0f0fe;
+  color: #0b79d4;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.editBtn:hover {
+  background: #cfe8ff;
+}
+
+.deleteBtn {
+  flex: 1;
+  padding: 12px;
+  background: #fef2f2;
+  color: #ef4444;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deleteBtn:hover {
+  background: #fee2e2;
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .imageSection {
+    min-height: 300px;
+  }
+  .infoSection {
+    padding: 24px;
+  }
+}
+
+.restockSection {
+  margin-top: 24px;
+  padding: 18px 20px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+}
+
+.restockSection h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: #9a3412;
+}
+
+.restockHint {
+  font-size: 0.92rem;
+  color: #7c2d12;
+  line-height: 1.55;
+  margin: 0 0 14px;
+}
+
+.restockNotice {
+  font-size: 0.92rem;
+  color: #12a594;
+  font-weight: 600;
+  margin: 0;
+}

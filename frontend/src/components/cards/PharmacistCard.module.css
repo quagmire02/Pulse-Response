@@ -1,0 +1,144 @@
+.cardLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-color: #0b79d4;
+}
+
+.header {
+  margin-bottom: 15px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 15px;
+}
+
+.name {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.licenseNumber {
+  background-color: #0b79d4;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.speciality {
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.location {
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.ratingRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rating {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #b8860b;
+}
+
+.noRating {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.consultation {
+  margin: 8px 0;
+}
+
+.consultationBadge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.available {
+  background-color: #e8f5e8;
+  color: #2d5a2d;
+  border: 1px solid #c3e6c3;
+}
+
+.unavailable {
+  background-color: #ffeaea;
+  color: #8b2635;
+  border: 1px solid #f5c6cb;
+}
+
+.bio {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.bioText {
+  margin: 5px 0 0 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.footer {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.email {
+  color: #666;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 15px;
+  }
+
+  .name {
+    font-size: 1.1rem;
+  }
+
+  .licenseNumber {
+    font-size: 0.8rem;
+  }
+}

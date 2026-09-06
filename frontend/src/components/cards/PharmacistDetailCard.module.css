@@ -1,0 +1,374 @@
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.name {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.section {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #0b79d4;
+}
+
+.sectionTitle {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0 0 15px 0;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.infoItem strong {
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.active {
+  background-color: #e8f5e8;
+  color: #2d5a2d;
+}
+
+.inactive {
+  background-color: #ffeaea;
+  color: #8b2635;
+}
+
+.licenseNumber {
+  background-color: #0b79d4;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.consultationBadge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.available {
+  background-color: #e8f5e8;
+  color: #2d5a2d;
+}
+
+.unavailable {
+  background-color: #ffeaea;
+  color: #8b2635;
+}
+
+.bio {
+  line-height: 1.6;
+  color: #555;
+  margin: 0;
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.slotPicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.slotLabel {
+  font-size: 0.9rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.dateInput {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.dateInput:focus {
+  border-color: #0b79d4;
+}
+
+.slotsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.slotBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  gap: 4px;
+  min-width: 130px;
+  transition: transform 0.15s;
+}
+
+.slotAvailable {
+  background: #e8f5e8;
+  color: #2d5a2d;
+  border: 1px solid #c3e6c3;
+}
+
+.slotAvailable:hover {
+  transform: translateY(-1px);
+  background: #d4edda;
+}
+
+.slotBooked {
+  background: #f0f0f0;
+  color: #999;
+  border: 1px solid #ddd;
+  cursor: not-allowed;
+}
+
+.slotStatus {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.slotInfo {
+  color: #888;
+  font-size: 0.9rem;
+  margin: 8px 0;
+}
+
+.successMsg {
+  color: #2d5a2d;
+  background: #e8f5e8;
+  border: 1px solid #c3e6c3;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.errorMsg {
+  color: #8b2635;
+  background: #ffeaea;
+  border: 1px solid #f5c6cb;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.slotForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.hourSelect {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  outline: none;
+}
+
+.addSlotBtn {
+  padding: 8px 16px;
+  background: #0b79d4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.addSlotBtn:hover:not(:disabled) {
+  background: #0965b4;
+}
+
+.addSlotBtn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.removeSlotBtn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.removeSlotBtn:hover {
+  background: #c82333;
+}
+
+.reviewsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.reviewItem {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.reviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.reviewUser {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.reviewRating {
+  font-size: 0.85rem;
+  color: #b8860b;
+}
+
+.reviewComment {
+  color: #555;
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.reviewForm {
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reviewFormTitle {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.reviewTextarea {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+}
+
+.reviewTextarea:focus {
+  border-color: #0b79d4;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 20px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .name {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+
+  .actions {
+    justify-content: center;
+  }
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .slotsGrid {
+    flex-direction: column;
+  }
+
+  .slotForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -1,0 +1,68 @@
+.container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding: 20px;
+  margin-top: 5rem;
+}
+
+.content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.backButton {
+  background: #0b79d4;
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-start;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  margin-bottom: 2rem;
+}
+
+.backButton:hover {
+  background: #0965b4;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 16px;
+  color: #666;
+}
+
+.error {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.notFound {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 16px;
+  color: #666;
+  background-color: white;
+  border-radius: 12px;
+  border: 1px solid #e5e5e5;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .backButton {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+}
